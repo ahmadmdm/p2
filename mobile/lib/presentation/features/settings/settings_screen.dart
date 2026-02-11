@@ -17,6 +17,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _ipController = TextEditingController();
   final _portController = TextEditingController();
+  final _baseUrlController = TextEditingController();
   String _paperSize = '80mm';
 
   @override
@@ -27,7 +28,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _ipController.text = settings['printerIp'];
       _portController.text = settings['printerPort'].toString();
       _paperSize = settings['paperSize'];
+      _baseUrlController.text = settings['baseUrl'] ?? '';
     }
+  }
+
+  @override
+  void dispose() {
+    _ipController.dispose();
+    _portController.dispose();
+    _baseUrlController.dispose();
+    super.dispose();
   }
 
   @override
@@ -38,6 +48,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
       body: settingsAsync.when(
         data: (settings) {
+          if (_baseUrlController.text.isEmpty) {
+            _baseUrlController.text = settings['baseUrl'] ?? '';
+          }
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -63,6 +76,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   );
                 },
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _baseUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'API Base URL',
+                  hintText: 'http://localhost:3000',
+                ),
               ),
               const Divider(height: 40),
               Text(AppLocalizations.of(context)!.printerSettings,
@@ -99,12 +120,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ElevatedButton(
                 onPressed: () {
                   final port = int.tryParse(_portController.text) ?? 9100;
-                  ref
-                      .read(settingsControllerProvider.notifier)
-                      .updatePrinterSettings(
-                        _ipController.text,
-                        port,
-                        _paperSize,
+                  ref.read(settingsControllerProvider.notifier).updateSettings(
+                        printerIp: _ipController.text,
+                        printerPort: port,
+                        paperSize: _paperSize,
+                        baseUrl: _baseUrlController.text.trim(),
                       );
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: Text(AppLocalizations.of(context)!.success)));
@@ -154,4 +174,3 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 }
-

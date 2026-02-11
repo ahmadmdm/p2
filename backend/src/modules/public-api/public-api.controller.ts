@@ -12,8 +12,13 @@ import {
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { PublicApiService } from './public-api.service';
 import { CaptchaService } from './captcha.service';
+import {
+  AddPublicOrderItemsDto,
+  CreatePublicOrderDto,
+  RequestBillDto,
+} from './dto/public-order.dto';
 
-@Controller('public-api')
+@Controller(['public-api', 'public'])
 @UseGuards(ThrottlerGuard)
 export class PublicApiController {
   constructor(
@@ -38,7 +43,7 @@ export class PublicApiController {
 
   @Post('orders')
   async createOrder(
-    @Body() body: any,
+    @Body() body: CreatePublicOrderDto,
     @Headers('x-captcha-id') captchaId?: string,
     @Headers('x-captcha-answer') captchaAnswer?: string,
   ) {
@@ -57,8 +62,7 @@ export class PublicApiController {
       }
     }
 
-    const { token, ...orderData } = body;
-    return this.publicApiService.createOrder(token, orderData);
+    return this.publicApiService.createOrder(body.token, body);
   }
 
   @Get('orders/:id')
@@ -70,13 +74,13 @@ export class PublicApiController {
   addItems(
     @Param('id') id: string,
     @Query('t') token: string,
-    @Body() body: any,
+    @Body() body: AddPublicOrderItemsDto,
   ) {
     return this.publicApiService.addItemsToOrder(token, id, body.items);
   }
 
   @Post('request-bill')
-  requestBill(@Body() body: { token: string }) {
+  requestBill(@Body() body: RequestBillDto) {
     return this.publicApiService.requestBill(body.token);
   }
 }

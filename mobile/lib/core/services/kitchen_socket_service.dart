@@ -6,6 +6,11 @@ import '../../presentation/features/settings/settings_controller.dart';
 
 part 'kitchen_socket_service.g.dart';
 
+const _defaultSocketBaseUrl = String.fromEnvironment(
+  'SOCKET_BASE_URL',
+  defaultValue: 'http://localhost:3000',
+);
+
 @Riverpod(keepAlive: true)
 KitchenSocketService kitchenSocketService(KitchenSocketServiceRef ref) {
   return KitchenSocketService(ref);
@@ -28,7 +33,7 @@ class KitchenSocketService {
 
   void _initSocket() async {
     final settings = await _ref.read(settingsControllerProvider.future);
-    final baseUrl = settings['baseUrl'] ?? 'http://localhost:3001';
+    final baseUrl = settings['baseUrl'] ?? _defaultSocketBaseUrl;
 
     _socket = IO.io(
         baseUrl,

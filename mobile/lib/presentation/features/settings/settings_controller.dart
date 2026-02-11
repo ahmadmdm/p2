@@ -3,6 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'settings_controller.g.dart';
 
+const _defaultApiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://localhost:3000',
+);
+
 @riverpod
 class SettingsController extends _$SettingsController {
   @override
@@ -12,7 +17,7 @@ class SettingsController extends _$SettingsController {
       'printerIp': prefs.getString('printerIp') ?? '192.168.1.200',
       'printerPort': prefs.getInt('printerPort') ?? 9100,
       'paperSize': prefs.getString('paperSize') ?? '80mm', // 80mm or 58mm
-      'baseUrl': prefs.getString('baseUrl') ?? 'http://localhost:3001',
+      'baseUrl': prefs.getString('baseUrl') ?? _defaultApiBaseUrl,
     };
   }
 

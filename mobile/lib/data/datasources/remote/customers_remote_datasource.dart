@@ -1,13 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/services/network_service.dart';
+
 part 'customers_remote_datasource.g.dart';
 
 @riverpod
 CustomersRemoteDataSource customersRemoteDataSource(
     CustomersRemoteDataSourceRef ref) {
-  return CustomersRemoteDataSource(
-      Dio(BaseOptions(baseUrl: 'http://localhost:3001')));
+  return CustomersRemoteDataSource(ref.watch(networkServiceProvider));
 }
 
 class CustomersRemoteDataSource {

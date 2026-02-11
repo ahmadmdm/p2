@@ -19,6 +19,13 @@ GoRouter router(Ref ref) {
           return LandingScreen(token: token);
         },
       ),
+      GoRoute(
+        path: '/t/:token',
+        builder: (context, state) {
+          final token = state.pathParameters['token'];
+          return LandingScreen(token: token);
+        },
+      ),
       GoRoute(path: '/menu', builder: (context, state) => const MenuScreen()),
       GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
       GoRoute(

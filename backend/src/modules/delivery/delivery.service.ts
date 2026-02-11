@@ -1,4 +1,11 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  forwardRef,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DeliveryProvider } from './interfaces/delivery-provider.interface';
 import { MockAggregatorProvider } from './providers/mock-aggregator.provider';
 import { UberEatsProvider } from './providers/uber-eats.provider';
@@ -27,7 +34,7 @@ export class DeliveryService {
   getProvider(name: string): DeliveryProvider {
     const provider = this.providers.get(name);
     if (!provider) {
-      throw new Error(`Delivery provider ${name} not found`);
+      throw new NotFoundException(`Delivery provider ${name} not found`);
     }
     return provider;
   }
@@ -54,9 +61,9 @@ export class DeliveryService {
 
   async cancelDeliveryForOrder(orderId: string): Promise<boolean> {
     const order = await this.ordersService.findOne(orderId);
-    if (!order) throw new Error('Order not found');
+    if (!order) throw new NotFoundException('Order not found');
     if (!order.deliveryProvider || !order.deliveryReferenceId) {
-      throw new Error('Order has no delivery info');
+      throw new BadRequestException('Order has no delivery info');
     }
     return this.cancelDelivery(
       order.deliveryProvider,

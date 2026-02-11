@@ -5,9 +5,13 @@ part 'api_service.g.dart';
 
 @riverpod
 Dio dio(Ref ref) {
+  const apiBaseUrl = String.fromEnvironment(
+    'PUBLIC_API_BASE_URL',
+    defaultValue: 'http://localhost:3000/public-api',
+  );
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'http://localhost:3001/public-api', // Adjust if needed
+      baseUrl: apiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ),

@@ -1,26 +1,32 @@
 import {
   IsArray,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PaymentMethod, OrderType } from '../order.entity';
+import { OrderSource, PaymentMethod, OrderType } from '../order.entity';
 
 class OrderItemDto {
   @IsString()
   @IsNotEmpty()
   productId: string;
 
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   @IsNotEmpty()
   quantity: number;
 
   @IsString()
   @IsOptional()
+  @MaxLength(500)
   notes?: string;
 
   @IsString()
@@ -69,6 +75,10 @@ export class CreateOrderDto {
   @IsEnum(PaymentMethod)
   @IsOptional()
   paymentMethod?: PaymentMethod;
+
+  @IsEnum(OrderSource)
+  @IsOptional()
+  source?: OrderSource;
 
   @IsString()
   @IsOptional()

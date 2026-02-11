@@ -43,6 +43,12 @@ export enum OrderType {
   DELIVERY = 'DELIVERY',
 }
 
+export enum OrderSource {
+  POS = 'POS',
+  SELF_ORDER = 'SELF_ORDER',
+  KIOSK = 'KIOSK',
+}
+
 @Entity('orders')
 export class Order {
   @PrimaryGeneratedColumn('uuid')
@@ -54,6 +60,13 @@ export class Order {
     default: OrderType.DINE_IN,
   })
   type: OrderType;
+
+  @Column({
+    type: 'enum',
+    enum: OrderSource,
+    default: OrderSource.POS,
+  })
+  source: OrderSource;
 
   @ManyToOne(() => Table, { nullable: true })
   table: Table | null;

@@ -6,7 +6,13 @@ import {
 import { TablesService } from '../tables/tables.service';
 import { CatalogService } from '../catalog/catalog.service';
 import { OrdersService } from '../orders/orders.service';
-import { Order } from '../orders/order.entity';
+import {
+  Order,
+  OrderSource,
+  OrderType,
+  PaymentMethod,
+} from '../orders/order.entity';
+import { PublicOrderItemDto } from './dto/public-order.dto';
 
 @Injectable()
 export class PublicApiService {
@@ -16,25 +22,42 @@ export class PublicApiService {
     private ordersService: OrdersService,
   ) {}
 
+  private normalizePublicItems(items: PublicOrderItemDto[]) {
+    return items.map((item) => ({
+      productId: item.productId,
+      quantity: Number(item.quantity),
+      notes: item.notes,
+      // Keep only IDs. Pricing and validity are enforced server-side from DB.
+      modifiers: (item.modifiers || []).map((modifier) => ({
+        id: modifier.id,
+      })),
+    }));
+  }
+
   async validateTableToken(token: string) {
-    if (!token) throw new BadRequestException('Table token is required');
-    return this.tablesService.findByQrCode(token);
+    const normalizedToken = typeof token === 'string' ? token.trim() : '';
+    if (!normalizedToken) {
+      throw new BadRequestException('Table token is required');
+    }
+    return this.tablesService.findByQrCode(normalizedToken);
   }
 
   async getMenu(token: string) {
     const table = await this.validateTableToken(token);
-    // You might want to filter menu based on table section or other rules later
     const categories = await this.catalogService.findAllCategories();
-    // Assuming findAllCategories returns categories with products, or we need to fetch products
-    // CatalogService.findAllCategories() usually just returns categories.
-    // We probably want the full menu structure for the PWA.
-    // Let's check CatalogService capabilities.
-    // If it doesn't have a "full menu" method, we might need to construct it.
-    // For now, let's return what findAllCategories provides.
+    const filteredCategories = categories
+      .map((category) => ({
+        ...category,
+        products: (category.products || []).filter(
+          (product) => product.isAvailable,
+        ),
+      }))
+      .filter((category) => category.products.length > 0);
+
     return {
-      branchName: 'My Restaurant', // Placeholder or from config
+      branchName: process.env.PUBLIC_BRANCH_NAME || 'Main Branch',
       tableNumber: table.tableNumber,
-      categories,
+      categories: filteredCategories,
     };
   }
 
@@ -45,18 +68,18 @@ export class PublicApiService {
 
   async createOrder(token: string, orderData: any): Promise<Order> {
     const table = await this.validateTableToken(token);
+    const items = this.normalizePublicItems(orderData.items || []);
+    if (items.length === 0) {
+      throw new BadRequestException('Order must contain at least one item');
+    }
 
-    // Inject the correct tableId into the order data
     const createOrderDto = {
-      ...orderData,
+      items,
       tableId: table.id,
-      // Ensure we don't accidentally allow setting other restricted fields
+      type: OrderType.DINE_IN,
+      paymentMethod: PaymentMethod.LATER,
+      source: OrderSource.SELF_ORDER,
     };
-
-    // We might want to mark this order as "Self Order" somehow.
-    // OrdersService.createOrder doesn't explicitly support a "source" field yet,
-    // but we can add notes or handle it if needed.
-    // For now, passing it to OrdersService is sufficient.
 
     return this.ordersService.createOrder(createOrderDto);
   }
@@ -89,18 +112,16 @@ export class PublicApiService {
       throw new NotFoundException('Order not found for this table');
     }
 
-    return this.ordersService.addItemsToOrder(publicId, items);
+    const normalizedItems = this.normalizePublicItems(items || []);
+    if (normalizedItems.length === 0) {
+      throw new BadRequestException('Items are required');
+    }
+
+    return this.ordersService.addItemsToOrder(publicId, normalizedItems);
   }
 
   async requestBill(token: string) {
     const table = await this.validateTableToken(token);
-    // Notify waiters/POS
-    // We need access to OrdersGateway, but it is in OrdersModule.
-    // OrdersService has it. Let's expose a method in OrdersService or inject Gateway here.
-    // Since OrdersModule exports OrdersGateway (checked previously), we can inject it?
-    // Wait, OrdersModule exports OrdersService. Does it export Gateway?
-    // Let's check OrdersModule.ts
-    // If not, we can add a method to OrdersService "notifyBillRequest".
     this.ordersService.notifyBillRequest(table);
     return { success: true, message: 'Bill requested' };
   }

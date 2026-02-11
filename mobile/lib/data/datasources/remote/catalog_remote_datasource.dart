@@ -1,12 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/services/network_service.dart';
+
 part 'catalog_remote_datasource.g.dart';
 
 @riverpod
-CatalogRemoteDataSource catalogRemoteDataSource(CatalogRemoteDataSourceRef ref) {
-  // TODO: Use a proper Dio provider with interceptors and base URL from config
-  return CatalogRemoteDataSource(Dio(BaseOptions(baseUrl: 'http://localhost:3000')));
+CatalogRemoteDataSource catalogRemoteDataSource(
+    CatalogRemoteDataSourceRef ref) {
+  return CatalogRemoteDataSource(ref.watch(networkServiceProvider));
 }
 
 class CatalogRemoteDataSource {
@@ -22,7 +24,8 @@ class CatalogRemoteDataSource {
       );
       return response.data;
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch categories');
+      throw Exception(
+          e.response?.data['message'] ?? 'Failed to fetch categories');
     }
   }
 
@@ -34,7 +37,8 @@ class CatalogRemoteDataSource {
       );
       return response.data;
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch products');
+      throw Exception(
+          e.response?.data['message'] ?? 'Failed to fetch products');
     }
   }
 }

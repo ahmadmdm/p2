@@ -1,12 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/services/network_service.dart';
+
 part 'shifts_remote_datasource.g.dart';
 
 @riverpod
 ShiftsRemoteDataSource shiftsRemoteDataSource(ShiftsRemoteDataSourceRef ref) {
-  return ShiftsRemoteDataSource(
-      Dio(BaseOptions(baseUrl: 'http://localhost:3001'))); // Replace with env
+  return ShiftsRemoteDataSource(ref.watch(networkServiceProvider));
 }
 
 class ShiftsRemoteDataSource {

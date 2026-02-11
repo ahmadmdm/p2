@@ -19,7 +19,7 @@ class SocketService {
   io.Socket? _socket;
   final String _baseUrl = const String.fromEnvironment(
     'SOCKET_BASE_URL',
-    defaultValue: 'http://localhost:3001',
+    defaultValue: 'http://localhost:3000',
   );
   final Set<String> _joinedOrders = <String>{};
   final StreamController<dynamic> _orderStatusController =

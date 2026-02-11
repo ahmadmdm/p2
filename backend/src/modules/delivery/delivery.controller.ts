@@ -1,4 +1,11 @@
-import { Controller, Post, Body, Param, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 
 @Controller('delivery')
@@ -14,7 +21,7 @@ export class DeliveryController {
   ) {
     const order = await this.deliveryService.getOrder(orderId);
     if (!order) {
-      throw new Error('Order not found');
+      throw new NotFoundException('Order not found');
     }
     const referenceId = await this.deliveryService.requestDelivery(
       providerName || 'mock-aggregator',

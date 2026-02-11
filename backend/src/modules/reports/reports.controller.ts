@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   UseGuards,
@@ -15,16 +16,30 @@ import type { Response } from 'express';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
+  private parseDateRange(startDate?: string, endDate?: string) {
+    const defaultStart = new Date(
+      new Date().setDate(new Date().getDate() - 30),
+    );
+    const start = startDate ? new Date(startDate) : defaultStart;
+    const end = endDate ? new Date(endDate) : new Date();
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new BadRequestException('Invalid date range');
+    }
+    if (start > end) {
+      throw new BadRequestException('startDate must be before endDate');
+    }
+
+    return { start, end };
+  }
+
   @Get('export/excel')
   async exportExcel(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const start = startDate
-      ? new Date(startDate)
-      : new Date(new Date().setDate(new Date().getDate() - 30)); // Default last 30 days
-    const end = endDate ? new Date(endDate) : new Date();
+    const { start, end } = this.parseDateRange(startDate, endDate);
 
     const buffer = await this.reportsService.generateSalesExcel(start, end);
 
@@ -43,10 +58,7 @@ export class ReportsController {
     @Query('endDate') endDate: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const start = startDate
-      ? new Date(startDate)
-      : new Date(new Date().setDate(new Date().getDate() - 30));
-    const end = endDate ? new Date(endDate) : new Date();
+    const { start, end } = this.parseDateRange(startDate, endDate);
 
     const buffer = await this.reportsService.generateSalesPdf(start, end);
 

@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm';
 import {
   Order,
+  OrderSource,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
@@ -70,6 +71,227 @@ export class OrdersService {
     );
   }
 
+  private parsePositiveInteger(value: unknown, fieldName: string): number {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException(`${fieldName} must be a positive integer`);
+    }
+    return parsed;
+  }
+
+  private parseNonNegativeAmount(value: unknown, fieldName: string): number {
+    const parsed = Number(value ?? 0);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      throw new BadRequestException(
+        `${fieldName} must be a non-negative number`,
+      );
+    }
+    return parsed;
+  }
+
+  private normalizeRequestedModifierIds(rawModifiers: unknown): string[] {
+    if (!Array.isArray(rawModifiers)) {
+      return [];
+    }
+
+    const ids = rawModifiers
+      .map((modifier) => {
+        if (typeof modifier === 'string') {
+          return modifier.trim();
+        }
+        if (
+          modifier &&
+          typeof modifier === 'object' &&
+          typeof (modifier as { id?: unknown }).id === 'string'
+        ) {
+          return ((modifier as { id: string }).id || '').trim();
+        }
+        return '';
+      })
+      .filter((id): id is string => Boolean(id));
+
+    return [...new Set(ids)];
+  }
+
+  private normalizeOrderItemStatus(rawStatus: unknown): string {
+    if (rawStatus === undefined || rawStatus === null || rawStatus === '') {
+      return OrderStatus.PENDING;
+    }
+    if (typeof rawStatus !== 'string' || !isOrderItemStatus(rawStatus)) {
+      throw new BadRequestException(`Invalid order item status: ${rawStatus}`);
+    }
+    return rawStatus;
+  }
+
+  private async buildValidatedModifiers(
+    product: Product,
+    requestedModifierIds: string[],
+  ): Promise<{
+    modifiers: any[];
+    modifiersTotal: number;
+    modifierIds: string[];
+  }> {
+    const groups = product.modifierGroups || [];
+    if (groups.length === 0) {
+      if (requestedModifierIds.length > 0) {
+        throw new BadRequestException(
+          `Product ${product.name.en} does not support modifiers`,
+        );
+      }
+      return { modifiers: [], modifiersTotal: 0, modifierIds: [] };
+    }
+
+    const itemToGroup = new Map<string, string>();
+    const itemSnapshots = new Map<
+      string,
+      { id: string; name: any; price: number }
+    >();
+
+    for (const group of groups) {
+      for (const item of group.items || []) {
+        itemToGroup.set(item.id, group.id);
+        itemSnapshots.set(item.id, {
+          id: item.id,
+          name: item.name,
+          price: Number(item.price),
+        });
+      }
+    }
+
+    for (const requestedId of requestedModifierIds) {
+      if (!itemToGroup.has(requestedId)) {
+        throw new BadRequestException(
+          `Modifier ${requestedId} is not valid for product ${product.name.en}`,
+        );
+      }
+    }
+
+    const selectedPerGroup = new Map<string, string[]>();
+    for (const modifierId of requestedModifierIds) {
+      const groupId = itemToGroup.get(modifierId)!;
+      const current = selectedPerGroup.get(groupId) || [];
+      current.push(modifierId);
+      selectedPerGroup.set(groupId, current);
+    }
+
+    for (const group of groups) {
+      const selectedCount = (selectedPerGroup.get(group.id) || []).length;
+      const min = Number(group.minSelection || 0);
+      const max = Number(group.maxSelection || 0);
+
+      if (selectedCount < min) {
+        throw new BadRequestException(
+          `At least ${min} modifier(s) are required for ${group.name.en || group.id}`,
+        );
+      }
+      if (max > 0 && selectedCount > max) {
+        throw new BadRequestException(
+          `Only ${max} modifier(s) allowed for ${group.name.en || group.id}`,
+        );
+      }
+    }
+
+    const modifiers = requestedModifierIds.map((modifierId) => {
+      const snapshot = itemSnapshots.get(modifierId)!;
+      return {
+        id: snapshot.id,
+        name: snapshot.name,
+        price: snapshot.price,
+      };
+    });
+
+    const modifiersTotal = modifiers.reduce(
+      (sum, modifier) => sum + Number(modifier.price),
+      0,
+    );
+
+    return {
+      modifiers,
+      modifiersTotal,
+      modifierIds: requestedModifierIds,
+    };
+  }
+
+  private async prepareOrderItems(items: any[]): Promise<{
+    orderItems: OrderItem[];
+    stockCheckItems: {
+      productId: string;
+      quantity: number;
+      modifierIds: string[];
+    }[];
+    subtotal: number;
+    tax: number;
+    discount: number;
+  }> {
+    const orderItems: OrderItem[] = [];
+    const stockCheckItems: {
+      productId: string;
+      quantity: number;
+      modifierIds: string[];
+    }[] = [];
+    let subtotal = 0;
+    let tax = 0;
+    let discount = 0;
+
+    for (const item of items) {
+      if (!item.productId || typeof item.productId !== 'string') {
+        throw new BadRequestException('Product ID is required');
+      }
+
+      const product = await this.productsRepository.findOne({
+        where: { id: item.productId },
+        relations: ['modifierGroups', 'modifierGroups.items'],
+      });
+      if (!product) {
+        throw new NotFoundException(`Product ${item.productId} not found`);
+      }
+      if (!product.isAvailable) {
+        throw new BadRequestException(
+          `Product ${product.name.en} is unavailable`,
+        );
+      }
+
+      const quantity = this.parsePositiveInteger(item.quantity, 'Quantity');
+      const itemTax = this.parseNonNegativeAmount(item.taxAmount, 'Tax amount');
+      const itemDiscount = this.parseNonNegativeAmount(
+        item.discountAmount,
+        'Discount amount',
+      );
+      const requestedModifierIds = this.normalizeRequestedModifierIds(
+        item.modifiers,
+      );
+      const validatedModifiers = await this.buildValidatedModifiers(
+        product,
+        requestedModifierIds,
+      );
+
+      const orderItem = new OrderItem();
+      orderItem.product = product;
+      orderItem.quantity = quantity;
+      orderItem.notes = typeof item.notes === 'string' ? item.notes : undefined;
+      orderItem.status = this.normalizeOrderItemStatus(item.status);
+      orderItem.modifiers = validatedModifiers.modifiers;
+      orderItem.price =
+        Number(product.price) + validatedModifiers.modifiersTotal;
+      orderItem.taxAmount = itemTax;
+      orderItem.discountAmount = itemDiscount;
+
+      const lineItemGross = Number(orderItem.price) * quantity;
+      subtotal += lineItemGross;
+      tax += itemTax;
+      discount += itemDiscount;
+
+      stockCheckItems.push({
+        productId: product.id,
+        quantity,
+        modifierIds: validatedModifiers.modifierIds,
+      });
+      orderItems.push(orderItem);
+    }
+
+    return { orderItems, stockCheckItems, subtotal, tax, discount };
+  }
+
   private async releaseTableIfOccupied(
     order: Order,
     manager?: EntityManager,
@@ -89,6 +311,7 @@ export class OrdersService {
       items,
       tableId,
       type,
+      source,
       paymentMethod,
       customerId,
       deliveryAddress,
@@ -96,17 +319,17 @@ export class OrdersService {
       deliveryFee,
     } = data;
 
-    if (!items || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       throw new BadRequestException('Order must contain at least one item');
     }
 
-    // Validate Table for Dine-in
     let table: Table | null = null;
-    const normalizedTableId =
-      typeof tableId === 'string' ? tableId.trim() : undefined;
+    const normalizedTableId = typeof tableId === 'string' ? tableId.trim() : '';
     if (normalizedTableId) {
       if (this.isUuid(normalizedTableId)) {
-        table = await this.tablesRepository.findOneBy({ id: normalizedTableId });
+        table = await this.tablesRepository.findOneBy({
+          id: normalizedTableId,
+        });
       } else {
         table = await this.tablesRepository.findOne({
           where: { tableNumber: normalizedTableId },
@@ -117,131 +340,90 @@ export class OrdersService {
       }
     }
 
-    const effectiveType = type || (table ? OrderType.DINE_IN : OrderType.TAKEAWAY);
-
+    const effectiveType = (type ||
+      (table ? OrderType.DINE_IN : OrderType.TAKEAWAY)) as OrderType;
+    if (!Object.values(OrderType).includes(effectiveType)) {
+      throw new BadRequestException(`Invalid order type: ${type}`);
+    }
     if (effectiveType === OrderType.DINE_IN && !table) {
       throw new BadRequestException('Table ID is required for Dine-in orders');
     }
 
-    // Check Stock Availability
-    const stockCheckItems = items.map((item: any) => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      modifierIds: item.modifiers ? item.modifiers.map((m: any) => m.id) : [],
-    }));
+    const effectivePaymentMethod = (paymentMethod ||
+      PaymentMethod.LATER) as PaymentMethod;
+    if (!Object.values(PaymentMethod).includes(effectivePaymentMethod)) {
+      throw new BadRequestException(`Invalid payment method: ${paymentMethod}`);
+    }
 
-    const hasStock =
-      await this.inventoryService.checkStockAvailability(stockCheckItems);
+    const effectiveSource = (source || OrderSource.POS) as OrderSource;
+    if (!Object.values(OrderSource).includes(effectiveSource)) {
+      throw new BadRequestException(`Invalid order source: ${source}`);
+    }
+
+    const preparedItems = await this.prepareOrderItems(items);
+    const hasStock = await this.inventoryService.checkStockAvailability(
+      preparedItems.stockCheckItems,
+    );
     if (!hasStock) {
       throw new BadRequestException('Insufficient stock for one or more items');
     }
 
-    // Use Transaction
     return this.dataSource.transaction(async (manager) => {
-      // Process Items
-      const orderItems: OrderItem[] = [];
-      let subtotal = 0;
-      let totalTax = 0;
-      let totalDiscount = 0;
+      const globalTax = this.parseNonNegativeAmount(
+        data.taxAmount,
+        'Tax amount',
+      );
+      const globalDiscount = this.parseNonNegativeAmount(
+        data.discountAmount,
+        'Discount amount',
+      );
+      const normalizedDeliveryFee = this.parseNonNegativeAmount(
+        deliveryFee,
+        'Delivery fee',
+      );
 
-      for (const item of items) {
-        if (!item.productId) {
-          throw new BadRequestException('Product ID is required');
-        }
-        const product = await this.productsRepository.findOneBy({
-          id: item.productId,
-        });
-        if (!product) {
-          throw new NotFoundException(`Product ${item.productId} not found`);
-        }
-        if (!product.isAvailable) {
-          throw new BadRequestException(
-            `Product ${product.name.en} is unavailable`,
-          );
-        }
-
-        const orderItem = new OrderItem();
-        orderItem.product = product;
-        orderItem.quantity = item.quantity;
-        orderItem.notes = item.notes;
-        orderItem.status = item.status || OrderStatus.PENDING;
-        orderItem.modifiers = item.modifiers || [];
-
-        let itemUnitPrice = Number(product.price);
-        if (item.modifiers && Array.isArray(item.modifiers)) {
-          for (const mod of item.modifiers) {
-            itemUnitPrice += Number(mod.price || 0);
-          }
-        }
-        orderItem.price = itemUnitPrice;
-
-        // Handle Item Tax & Discount
-        const itemTax = Number(item.taxAmount || 0);
-        const itemDiscount = Number(item.discountAmount || 0);
-
-        orderItem.taxAmount = itemTax;
-        orderItem.discountAmount = itemDiscount;
-
-        const lineItemGross = itemUnitPrice * item.quantity;
-        subtotal += lineItemGross;
-        totalTax += itemTax;
-        totalDiscount += itemDiscount;
-
-        orderItems.push(orderItem);
-      }
-
-      // Handle Global Order Tax & Discount
-      const globalTax = Number(data.taxAmount || 0);
-      const globalDiscount = Number(data.discountAmount || 0);
-
-      totalTax += globalTax;
-      totalDiscount += globalDiscount;
-
+      const totalTax = preparedItems.tax + globalTax;
+      const totalDiscount = preparedItems.discount + globalDiscount;
       const finalTotal =
-        subtotal - totalDiscount + totalTax + (deliveryFee || 0);
+        preparedItems.subtotal -
+        totalDiscount +
+        totalTax +
+        normalizedDeliveryFee;
 
-      // Create Order
       const order = new Order();
       order.table = table;
       order.type = effectiveType;
+      order.source = effectiveSource;
       order.deliveryAddress = deliveryAddress;
-      order.deliveryFee = deliveryFee || 0;
+      order.deliveryFee = normalizedDeliveryFee;
       order.driverId = driverId;
-      order.items = orderItems;
+      order.items = preparedItems.orderItems;
       order.taxAmount = totalTax;
       order.discountAmount = totalDiscount;
       order.totalAmount = finalTotal;
       order.status = OrderStatus.PENDING;
-      order.paymentMethod = paymentMethod || PaymentMethod.LATER;
+      order.paymentMethod = effectivePaymentMethod;
 
-      // Update Table Status if needed
       if (table && table.status === TableStatus.FREE) {
         table.status = TableStatus.OCCUPIED;
         await manager.save(table);
       }
 
-      // Save initially to get ID for loyalty transaction
       const savedOrder = await manager.save(order);
 
       if (
-        paymentMethod === PaymentMethod.CASH ||
-        paymentMethod === PaymentMethod.CARD
+        effectivePaymentMethod === PaymentMethod.CASH ||
+        effectivePaymentMethod === PaymentMethod.CARD
       ) {
         savedOrder.paymentStatus = PaymentStatus.PAID;
-      } else if (paymentMethod === PaymentMethod.LOYALTY) {
+      } else if (effectivePaymentMethod === PaymentMethod.LOYALTY) {
         if (!customerId) {
           throw new BadRequestException(
             'Customer required for loyalty payment',
           );
         }
-        // Check points logic
-        // 10 points = 1.00 currency
-        // Points needed = totalAmount * 10
         const pointsNeeded = Math.ceil(finalTotal * 10);
 
-        // We need to check if customer has enough points
-        // Since we are inside a transaction, we should use the manager to find the customer to lock it?
-        // For now simple check
         const customer = await manager.findOne(Customer, {
           where: { id: customerId },
         });
@@ -255,9 +437,6 @@ export class OrdersService {
           );
         }
 
-        // Deduct Points
-        // We use CustomersService.addPoints with negative value
-        // Ensure addPoints supports negative
         await this.customersService.addPoints(
           customerId,
           -pointsNeeded,
@@ -281,13 +460,12 @@ export class OrdersService {
       }
 
       await manager.save(Order, savedOrder);
+      await this.inventoryService.deductStockForOrder(
+        preparedItems.stockCheckItems,
+        manager,
+      );
 
-      // Deduct Stock
-      await this.inventoryService.deductStockForOrder(stockCheckItems, manager);
-
-      // Notify KDS
       this.ordersGateway.notifyNewOrder(savedOrder);
-
       return savedOrder;
     });
   }
@@ -306,90 +484,46 @@ export class OrdersService {
       throw new BadRequestException('Cannot add items to a closed order');
     }
 
-    // Check Stock Availability
-    const stockCheckItems = items.map((item: any) => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      modifierIds: item.modifiers ? item.modifiers.map((m: any) => m.id) : [],
-    }));
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new BadRequestException('Items are required');
+    }
 
-    const hasStock =
-      await this.inventoryService.checkStockAvailability(stockCheckItems);
+    const preparedItems = await this.prepareOrderItems(items);
+    const hasStock = await this.inventoryService.checkStockAvailability(
+      preparedItems.stockCheckItems,
+    );
     if (!hasStock) {
       throw new BadRequestException('Insufficient stock for one or more items');
     }
 
     return this.dataSource.transaction(async (manager) => {
-      // Process New Items
       const newOrderItems: OrderItem[] = [];
-      let additionalSubtotal = 0;
-      let additionalTax = 0;
-      let additionalDiscount = 0;
-
-      for (const item of items) {
-        if (!item.productId) {
-          throw new BadRequestException('Product ID is required');
-        }
-        const product = await this.productsRepository.findOneBy({
-          id: item.productId,
-        });
-        if (!product) {
-          throw new NotFoundException(`Product ${item.productId} not found`);
-        }
-        if (!product.isAvailable) {
-          throw new BadRequestException(
-            `Product ${product.name.en} is unavailable`,
-          );
-        }
-
-        const orderItem = new OrderItem();
-        orderItem.product = product;
-        orderItem.quantity = item.quantity;
-        orderItem.notes = item.notes;
+      for (const orderItem of preparedItems.orderItems) {
         orderItem.status = OrderStatus.PENDING;
-        orderItem.modifiers = item.modifiers || [];
-        orderItem.order = order; // Link to order
-
-        let itemUnitPrice = Number(product.price);
-        if (item.modifiers && Array.isArray(item.modifiers)) {
-          for (const mod of item.modifiers) {
-            itemUnitPrice += Number(mod.price || 0);
-          }
-        }
-        orderItem.price = itemUnitPrice;
-
-        const itemTax = Number(item.taxAmount || 0);
-        const itemDiscount = Number(item.discountAmount || 0);
-
-        orderItem.taxAmount = itemTax;
-        orderItem.discountAmount = itemDiscount;
-
-        const lineItemGross = itemUnitPrice * item.quantity;
-        additionalSubtotal += lineItemGross;
-        additionalTax += itemTax;
-        additionalDiscount += itemDiscount;
-
-        newOrderItems.push(orderItem);
-        await manager.save(OrderItem, orderItem); // Save individual items
+        orderItem.order = order;
+        const savedItem = await manager.save(OrderItem, orderItem);
+        newOrderItems.push(savedItem);
       }
 
-      // Update Order Totals
-      order.taxAmount = Number(order.taxAmount) + additionalTax;
-      order.discountAmount = Number(order.discountAmount) + additionalDiscount;
+      order.taxAmount = Number(order.taxAmount) + preparedItems.tax;
+      order.discountAmount =
+        Number(order.discountAmount) + preparedItems.discount;
       order.totalAmount =
         Number(order.totalAmount) +
-        (additionalSubtotal - additionalDiscount + additionalTax);
+        (preparedItems.subtotal - preparedItems.discount + preparedItems.tax);
 
-      // Append items to the order object for return (optional, but good for response)
-      if (!order.items) order.items = [];
+      if (!order.items) {
+        order.items = [];
+      }
       order.items.push(...newOrderItems);
 
       const savedOrder = await manager.save(Order, order);
 
-      // Deduct Stock for new items
-      await this.inventoryService.deductStockForOrder(stockCheckItems, manager);
+      await this.inventoryService.deductStockForOrder(
+        preparedItems.stockCheckItems,
+        manager,
+      );
 
-      // Notify KDS
       this.ordersGateway.notifyOrderUpdate(savedOrder);
 
       return savedOrder;
@@ -769,7 +903,14 @@ export class OrdersService {
   }
 
   async findByDeliveryReferenceId(refId: string): Promise<Order | null> {
-    return null; // Not implemented yet
+    const normalizedRefId = refId?.trim();
+    if (!normalizedRefId) {
+      return null;
+    }
+    return this.ordersRepository.findOne({
+      where: { deliveryReferenceId: normalizedRefId },
+      relations: ['items', 'items.product', 'table', 'refunds'],
+    });
   }
 
   async requestRefund(

@@ -125,39 +125,49 @@ class CartScreen extends ConsumerWidget {
                             }
 
                             try {
-                              final activeOrderId = ref.read(activeOrderIdProvider);
-                              
+                              final activeOrderId = ref.read(
+                                activeOrderIdProvider,
+                              );
+
                               // Construct order payload
                               final itemsPayload = cartItems
-                                    .map(
-                                      (item) => {
-                                        'productId': item.productId,
-                                        'quantity': item.quantity,
-                                        'modifiers': item.modifiers,
-                                        'notes': item.notes,
-                                      },
-                                    )
-                                    .toList();
+                                  .map(
+                                    (item) => {
+                                      'productId': item.productId,
+                                      'quantity': item.quantity,
+                                      'modifiers': item.modifiers.map((m) {
+                                        if (m is Map && m['id'] != null) {
+                                          return {'id': m['id']};
+                                        }
+                                        return {'id': m.toString()};
+                                      }).toList(),
+                                      'notes': item.notes,
+                                    },
+                                  )
+                                  .toList();
 
                               dynamic result;
                               if (activeOrderId != null) {
                                 // Add to existing order
                                 result = await ref
                                     .read(apiServiceProvider.notifier)
-                                    .addItemsToOrder(token, activeOrderId, itemsPayload);
+                                    .addItemsToOrder(
+                                      token,
+                                      activeOrderId,
+                                      itemsPayload,
+                                    );
                               } else {
                                 // Create new order
-                                final orderData = {
-                                  'items': itemsPayload,
-                                  'paymentMethod': 'later', // Default for self-order
-                                };
+                                final orderData = {'items': itemsPayload};
                                 result = await ref
                                     .read(apiServiceProvider.notifier)
                                     .createOrder(token, orderData);
-                                    
+
                                 // Set active order ID
                                 if (result != null && result['id'] != null) {
-                                  ref.read(activeOrderIdProvider.notifier).setId(result['id']);
+                                  ref
+                                      .read(activeOrderIdProvider.notifier)
+                                      .setId(result['id']);
                                 }
                               }
 
@@ -165,18 +175,14 @@ class CartScreen extends ConsumerWidget {
 
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(l10n.orderPlaced),
-                                  ),
+                                  SnackBar(content: Text(l10n.orderPlaced)),
                                 );
                                 context.go('/status/${result['id']}');
                               }
                             } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('${l10n.error}: $e'),
-                                  ),
+                                  SnackBar(content: Text('${l10n.error}: $e')),
                                 );
                               }
                             }
