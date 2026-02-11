@@ -6,7 +6,7 @@ part of 'orders_history_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$ordersHistoryHash() => r'9008630be1156bc3519f51b51b320b89be519d59';
+String _$ordersHistoryHash() => r'cf9d621b15dea2cc536900f9d69d75bcf83d734d';
 
 /// See also [ordersHistory].
 @ProviderFor(ordersHistory)
@@ -24,7 +24,7 @@ final ordersHistoryProvider = AutoDisposeFutureProvider<List<Order>>.internal(
 // ignore: unused_element
 typedef OrdersHistoryRef = AutoDisposeFutureProviderRef<List<Order>>;
 String _$ordersActionsControllerHash() =>
-    r'f293ab03210c335f83783251e7355fc3c7db1aee';
+    r'e5ac84ec460653350ab068c77d1eb7d5fbc8f5c9';
 
 /// See also [OrdersActionsController].
 @ProviderFor(OrdersActionsController)

@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Put,
+  UseGuards,
+  Request,
+  ForbiddenException,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User, UserRole } from './user.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -26,7 +37,11 @@ export class UsersController {
   }
 
   @Put(':id')
-  async update(@Request() req: any, @Param('id') id: string, @Body() body: Partial<User>) {
+  async update(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: Partial<User>,
+  ) {
     this.checkAdmin(req.user);
     if (body.passwordHash) {
       body.passwordHash = await bcrypt.hash(body.passwordHash, 10);

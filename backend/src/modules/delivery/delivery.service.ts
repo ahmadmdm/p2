@@ -1,4 +1,3 @@
-
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { DeliveryProvider } from './interfaces/delivery-provider.interface';
 import { MockAggregatorProvider } from './providers/mock-aggregator.provider';
@@ -36,7 +35,7 @@ export class DeliveryService {
   async requestDelivery(providerName: string, order: Order): Promise<string> {
     const provider = this.getProvider(providerName);
     const referenceId = await provider.requestDelivery(order);
-    
+
     await this.ordersService.updateDeliveryInfo(order.id, {
       deliveryProvider: providerName,
       deliveryReferenceId: referenceId,
@@ -45,7 +44,10 @@ export class DeliveryService {
     return referenceId;
   }
 
-  async cancelDelivery(providerName: string, referenceId: string): Promise<boolean> {
+  async cancelDelivery(
+    providerName: string,
+    referenceId: string,
+  ): Promise<boolean> {
     const provider = this.getProvider(providerName);
     return provider.cancelDelivery(referenceId);
   }
@@ -56,7 +58,10 @@ export class DeliveryService {
     if (!order.deliveryProvider || !order.deliveryReferenceId) {
       throw new Error('Order has no delivery info');
     }
-    return this.cancelDelivery(order.deliveryProvider, order.deliveryReferenceId);
+    return this.cancelDelivery(
+      order.deliveryProvider,
+      order.deliveryReferenceId,
+    );
   }
 
   async getOrder(orderId: string): Promise<Order | null> {
@@ -64,37 +69,41 @@ export class DeliveryService {
   }
 
   async handleWebhook(providerName: string, payload: any) {
-    this.logger.log(`Handling webhook for ${providerName}: ${JSON.stringify(payload)}`);
-    
+    this.logger.log(
+      `Handling webhook for ${providerName}: ${JSON.stringify(payload)}`,
+    );
+
     // Generic handling logic
     const { referenceId, status, orderId } = payload;
-    
+
     // Find order by referenceId or orderId
     let order: Order | null = null;
-    
+
     if (orderId) {
       order = await this.ordersService.findOne(orderId);
     } else if (referenceId) {
-       // We need a method to find by deliveryReferenceId in OrdersService
-       // For now, let's assume we can't easily find by refId without adding an index/method
-       // So we rely on orderId being present in payload or we scan (bad for perf)
-       // Let's try to query via repository if possible, but OrdersService is better encapsulation.
-       // Assuming OrdersService has a method or we add one.
-       // Let's add findByDeliveryReferenceId to OrdersService.
-       order = await this.ordersService.findByDeliveryReferenceId(referenceId);
+      // We need a method to find by deliveryReferenceId in OrdersService
+      // For now, let's assume we can't easily find by refId without adding an index/method
+      // So we rely on orderId being present in payload or we scan (bad for perf)
+      // Let's try to query via repository if possible, but OrdersService is better encapsulation.
+      // Assuming OrdersService has a method or we add one.
+      // Let's add findByDeliveryReferenceId to OrdersService.
+      order = await this.ordersService.findByDeliveryReferenceId(referenceId);
     }
-    
+
     if (order) {
-        let orderStatus = 'PREPARING';
-        if (status === 'ASSIGNED') orderStatus = 'READY'; 
-        if (status === 'PICKED_UP') orderStatus = 'SERVED'; // Or DELIVERING if we add that status
-        if (status === 'DELIVERED') orderStatus = 'COMPLETED';
-        if (status === 'CANCELLED') orderStatus = 'CANCELLED';
-        
-        await this.ordersService.updateStatus(order.id, orderStatus as any);
-        this.logger.log(`Updated order ${order.id} to ${orderStatus}`);
+      let orderStatus = 'PREPARING';
+      if (status === 'ASSIGNED') orderStatus = 'READY';
+      if (status === 'PICKED_UP') orderStatus = 'SERVED'; // Or DELIVERING if we add that status
+      if (status === 'DELIVERED') orderStatus = 'COMPLETED';
+      if (status === 'CANCELLED') orderStatus = 'CANCELLED';
+
+      await this.ordersService.updateStatus(order.id, orderStatus as any);
+      this.logger.log(`Updated order ${order.id} to ${orderStatus}`);
     } else {
-        this.logger.warn(`Order not found for webhook: ${JSON.stringify(payload)}`);
+      this.logger.warn(
+        `Order not found for webhook: ${JSON.stringify(payload)}`,
+      );
     }
   }
 }

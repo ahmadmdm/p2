@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
 import '../../../../domain/entities/ingredient.dart';
 import 'inventory_controller.dart';
 import 'inventory_logs_screen.dart';
@@ -299,3 +299,4 @@ class _AdjustStockDialogState extends ConsumerState<AdjustStockDialog> {
     );
   }
 }
+

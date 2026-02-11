@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
-import '../../../domain/entities/order.dart';
 import '../../../domain/entities/order_status.dart';
 import 'orders_history_controller.dart';
 import 'order_details_screen.dart';
@@ -65,3 +64,4 @@ class OrdersHistoryScreen extends ConsumerWidget {
     );
   }
 }
+

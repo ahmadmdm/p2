@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/services/kitchen_socket_service.dart';
 import '../../../domain/entities/restaurant_table.dart';
@@ -252,3 +252,4 @@ class _FloorPlanScreenState extends ConsumerState<FloorPlanScreen> {
         });
   }
 }
+

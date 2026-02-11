@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../core/services/network_service.dart';
+import '../../../core/services/network_service.dart';
 
 part 'reports_remote_datasource.g.dart';
 

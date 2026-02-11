@@ -1,4 +1,3 @@
-
 import { Controller, Post, Body, Param, Logger } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 
@@ -17,14 +16,15 @@ export class DeliveryController {
     if (!order) {
       throw new Error('Order not found');
     }
-    const referenceId = await this.deliveryService.requestDelivery(providerName || 'mock-aggregator', order);
+    const referenceId = await this.deliveryService.requestDelivery(
+      providerName || 'mock-aggregator',
+      order,
+    );
     return { success: true, referenceId };
   }
 
   @Post('cancel/:orderId')
-  async cancelDelivery(
-    @Param('orderId') orderId: string,
-  ) {
+  async cancelDelivery(@Param('orderId') orderId: string) {
     const success = await this.deliveryService.cancelDeliveryForOrder(orderId);
     return { success };
   }

@@ -1,5 +1,6 @@
 import '../entities/order.dart';
 import '../entities/order_status.dart';
+import '../entities/refund.dart';
 
 abstract class OrdersRepository {
   Future<List<Order>> fetchOrders(String token);

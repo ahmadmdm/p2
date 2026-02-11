@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:drift/drift.dart';
-import '../../domain/entities/restaurant_table.dart';
+import '../../domain/entities/restaurant_table.dart' as domain;
 import '../../domain/repositories/tables_repository.dart';
 import '../datasources/remote/tables_remote_datasource.dart';
 import '../datasources/local/database.dart';
@@ -25,14 +25,16 @@ class TablesRepositoryImpl implements TablesRepository {
   TablesRepositoryImpl(this._remoteDataSource, this._db, this._ref);
 
   @override
-  Future<List<RestaurantTable>> getTables() async {
+  Future<List<domain.RestaurantTable>> getTables() async {
     final user = _ref.read(authControllerProvider).value;
     final token = user?.accessToken;
 
     if (token != null) {
       try {
         final data = await _remoteDataSource.getTables(token);
-        final remoteTables = data.map((json) => RestaurantTable.fromJson(json)).toList();
+        final remoteTables = data
+            .map((json) => domain.RestaurantTable.fromJson(json))
+            .toList();
 
         // Cache to local DB
         await _db.batch((batch) {
@@ -66,7 +68,7 @@ class TablesRepositoryImpl implements TablesRepository {
 
     // Local fallback
     final localTables = await _db.select(_db.restaurantTables).get();
-    return localTables.map((t) => RestaurantTable(
+    return localTables.map((t) => domain.RestaurantTable(
       id: t.id,
       tableNumber: t.tableNumber,
       section: t.section,
@@ -83,7 +85,7 @@ class TablesRepositoryImpl implements TablesRepository {
   }
 
   @override
-  Future<void> updateLayout(List<RestaurantTable> tables) async {
+  Future<void> updateLayout(List<domain.RestaurantTable> tables) async {
     // 1. Save locally
     await _db.batch((batch) {
       for (final table in tables) {
@@ -114,7 +116,8 @@ class TablesRepositoryImpl implements TablesRepository {
     final token = user?.accessToken;
     if (token != null) {
       try {
-        final dtos = tables.map((t) => t.toJson()).toList();
+        final dtos =
+            tables.map((t) => t.toJson()).cast<Map<String, dynamic>>().toList();
         await _remoteDataSource.updateLayout(token, dtos);
         
         // Mark as synced

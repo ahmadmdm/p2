@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, BadRequestException, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  BadRequestException,
+  Headers,
+} from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { PublicApiService } from './public-api.service';
 import { CaptchaService } from './captcha.service';
@@ -36,9 +46,12 @@ export class PublicApiController {
     // (e.g., high rate from IP) and ONLY then require captcha.
     // Here, we provide the mechanism. If the client sends captcha headers, we validate them.
     // If strict mode was enabled, we would throw if missing.
-    
+
     if (captchaId && captchaAnswer) {
-      const isValid = this.captchaService.validateCaptcha(captchaId, captchaAnswer);
+      const isValid = this.captchaService.validateCaptcha(
+        captchaId,
+        captchaAnswer,
+      );
       if (!isValid) {
         throw new BadRequestException('Invalid captcha');
       }
@@ -54,7 +67,11 @@ export class PublicApiController {
   }
 
   @Post('orders/:id/add-items')
-  addItems(@Param('id') id: string, @Query('t') token: string, @Body() body: any) {
+  addItems(
+    @Param('id') id: string,
+    @Query('t') token: string,
+    @Body() body: any,
+  ) {
     return this.publicApiService.addItemsToOrder(token, id, body.items);
   }
 

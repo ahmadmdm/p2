@@ -1,11 +1,12 @@
 import 'package:drift/drift.dart';
-import 'package:pos_mobile/domain/entities/order.dart' as domain;
 
 class Users extends Table {
   TextColumn get id => text()();
-  TextColumn get username => text()();
+  TextColumn get name => text()();
+  TextColumn get email => text()();
   TextColumn get role => text()();
   TextColumn get pinCode => text().nullable()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
 
   @override
@@ -14,7 +15,8 @@ class Users extends Table {
 
 class Categories extends Table {
   TextColumn get id => text()();
-  TextColumn get name => text()();
+  TextColumn get nameEn => text()();
+  TextColumn get nameAr => text()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
 
@@ -25,13 +27,15 @@ class Categories extends Table {
 class Products extends Table {
   TextColumn get id => text()();
   TextColumn get categoryId => text().references(Categories, #id)();
-  TextColumn get name => text()();
+  TextColumn get nameEn => text()();
+  TextColumn get nameAr => text()();
   RealColumn get price => real()();
   TextColumn get description => text().nullable()();
   TextColumn get imageUrl => text().nullable()();
   BoolColumn get isAvailable => boolean().withDefault(const Constant(true))();
-  TextColumn get modifierGroups =>
-      text().map(const ModifierGroupsConverter()).nullable()();
+  TextColumn get modifierGroups => text().nullable()();
+  TextColumn get station => text().nullable()();
+  TextColumn get course => text().withDefault(const Constant('OTHER'))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
 
   @override
@@ -46,18 +50,17 @@ class Orders extends Table {
   RealColumn get taxAmount => real().withDefault(const Constant(0.0))();
   RealColumn get discountAmount => real().withDefault(const Constant(0.0))();
   DateTimeColumn get createdAt => dateTime()();
+  TextColumn get paymentMethod => text().withDefault(const Constant('LATER'))();
+  TextColumn get paymentStatus =>
+      text().withDefault(const Constant('PENDING'))();
+  TextColumn get customerId => text().nullable()();
   TextColumn get shiftId => text().nullable().references(Shifts, #id)();
-
-  // Delivery fields
-  TextColumn get type => text()
-      .withDefault(const Constant('DINE_IN'))(); // DINE_IN, TAKEAWAY, DELIVERY
+  TextColumn get type => text().withDefault(const Constant('DINE_IN'))();
   RealColumn get deliveryFee => real().withDefault(const Constant(0))();
   TextColumn get deliveryAddress => text().nullable()();
   TextColumn get driverId => text().nullable().references(Users, #id)();
-  TextColumn get deliveryProvider =>
-      text().nullable()(); // 'uber-eats', 'talabat', 'internal'
+  TextColumn get deliveryProvider => text().nullable()();
   TextColumn get deliveryReferenceId => text().nullable()();
-
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
 
   @override
@@ -73,8 +76,8 @@ class OrderItems extends Table {
   RealColumn get taxAmount => real().withDefault(const Constant(0.0))();
   RealColumn get discountAmount => real().withDefault(const Constant(0.0))();
   TextColumn get notes => text().nullable()();
-  TextColumn get modifiers =>
-      text().map(const OrderItemModifiersConverter()).nullable()();
+  TextColumn get status => text().withDefault(const Constant('PENDING'))();
+  TextColumn get modifiers => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -83,11 +86,15 @@ class OrderItems extends Table {
 class Shifts extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text().references(Users, #id)();
+  TextColumn get deviceId => text().nullable()();
   DateTimeColumn get startTime => dateTime()();
   DateTimeColumn get endTime => dateTime().nullable()();
-  RealColumn get startCash => real()();
-  RealColumn get endCash => real().nullable()();
-  RealColumn get totalSales => real().nullable()();
+  RealColumn get startingCash => real()();
+  RealColumn get endingCash => real().nullable()();
+  RealColumn get expectedCash => real().nullable()();
+  RealColumn get difference => real().nullable()();
+  TextColumn get status => text().withDefault(const Constant('OPEN'))();
+  TextColumn get notes => text().nullable()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
 
   @override
@@ -98,9 +105,9 @@ class CashTransactions extends Table {
   TextColumn get id => text()();
   TextColumn get shiftId => text().references(Shifts, #id)();
   RealColumn get amount => real()();
-  TextColumn get type => text()(); // IN, OUT
+  TextColumn get type => text()();
   TextColumn get reason => text()();
-  DateTimeColumn get timestamp => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
   @override
@@ -120,12 +127,11 @@ class Customers extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-// Inventory Tables
 class Suppliers extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
-  TextColumn get contactName => text().nullable()();
-  TextColumn get phoneNumber => text().nullable()();
+  TextColumn get contactPerson => text().nullable()();
+  TextColumn get phone => text().nullable()();
   TextColumn get email => text().nullable()();
   TextColumn get address => text().nullable()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
@@ -137,7 +143,7 @@ class Suppliers extends Table {
 class Ingredients extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
-  TextColumn get unit => text()(); // kg, L, pcs
+  TextColumn get unit => text()();
   RealColumn get costPerUnit => real().withDefault(const Constant(0))();
   RealColumn get minLevel => real().withDefault(const Constant(0))();
   RealColumn get currentStock => real().withDefault(const Constant(0))();
@@ -150,8 +156,7 @@ class Ingredients extends Table {
 class RecipeItems extends Table {
   TextColumn get id => text()();
   TextColumn get productId => text().nullable().references(Products, #id)();
-  // We can also have recipe for modifier items, but for now link to product
-  // Or link to a 'menu_item_id' which could be product or modifier_item
+  TextColumn get modifierItemId => text().nullable()();
   TextColumn get ingredientId => text().references(Ingredients, #id)();
   RealColumn get quantity => real()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
@@ -163,9 +168,10 @@ class RecipeItems extends Table {
 class PurchaseOrders extends Table {
   TextColumn get id => text()();
   TextColumn get supplierId => text().references(Suppliers, #id)();
-  DateTimeColumn get orderDate => dateTime()();
-  TextColumn get status => text()(); // DRAFT, ORDERED, RECEIVED, CANCELLED
-  RealColumn get totalAmount => real()();
+  TextColumn get status => text()();
+  RealColumn get totalCost => real().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get expectedDelivery => dateTime().nullable()();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get paymentDueDate => dateTime().nullable()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
@@ -220,7 +226,7 @@ class InventoryLogs extends Table {
   RealColumn get quantityChange => real()();
   RealColumn get oldQuantity => real().nullable()();
   RealColumn get newQuantity => real().nullable()();
-  TextColumn get reason => text()(); // SALE, WASTE, SPOILAGE, etc.
+  TextColumn get reason => text()();
   TextColumn get notes => text().nullable()();
   TextColumn get referenceId => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
@@ -239,8 +245,7 @@ class RestaurantTables extends Table {
   RealColumn get y => real().withDefault(const Constant(0.0))();
   RealColumn get width => real().withDefault(const Constant(100.0))();
   RealColumn get height => real().withDefault(const Constant(100.0))();
-  TextColumn get shape => text()
-      .withDefault(const Constant('rectangle'))(); // 'rectangle', 'circle'
+  TextColumn get shape => text().withDefault(const Constant('rectangle'))();
   RealColumn get rotation => real().withDefault(const Constant(0.0))();
   TextColumn get status => text().withDefault(const Constant('free'))();
   TextColumn get qrCode => text().nullable()();
@@ -248,37 +253,4 @@ class RestaurantTables extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
-}
-
-// Type Converters
-class ModifierGroupsConverter
-    extends TypeConverter<List<domain.ModifierGroup>, String> {
-  const ModifierGroupsConverter();
-
-  @override
-  List<domain.ModifierGroup> fromSql(String fromDb) {
-    // Implement JSON decoding
-    return []; // Placeholder - actual implementation needs jsonDecode
-  }
-
-  @override
-  String toSql(List<domain.ModifierGroup> value) {
-    // Implement JSON encoding
-    return '[]'; // Placeholder
-  }
-}
-
-class OrderItemModifiersConverter
-    extends TypeConverter<List<domain.OrderItemModifier>, String> {
-  const OrderItemModifiersConverter();
-
-  @override
-  List<domain.OrderItemModifier> fromSql(String fromDb) {
-    return []; // Placeholder
-  }
-
-  @override
-  String toSql(List<domain.OrderItemModifier> value) {
-    return '[]'; // Placeholder
-  }
 }

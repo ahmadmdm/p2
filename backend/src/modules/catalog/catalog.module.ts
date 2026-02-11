@@ -8,7 +8,9 @@ import { ModifierGroup } from './modifier-group.entity';
 import { ModifierItem } from './modifier-item.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Category, Product, ModifierGroup, ModifierItem])],
+  imports: [
+    TypeOrmModule.forFeature([Category, Product, ModifierGroup, ModifierItem]),
+  ],
   providers: [CatalogService],
   controllers: [CatalogController],
   exports: [CatalogService],

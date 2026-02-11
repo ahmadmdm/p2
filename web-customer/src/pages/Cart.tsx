@@ -8,7 +8,7 @@ import api from '../api';
 export default function Cart() {
   const navigate = useNavigate();
   const { tableId } = useParams<{ tableId: string }>();
-  const { items, removeFromCart, updateQuantity, updateNotes, total, clearCart } = useCart();
+  const { items, removeFromCart, updateQuantity, total, clearCart } = useCart();
   const { customer } = useAuth();
   const [placingOrder, setPlacingOrder] = useState(false);
 
@@ -27,7 +27,7 @@ export default function Cart() {
           productId: item.product.id,
           quantity: item.quantity,
           notes: item.notes || '',
-          modifiers: item.modifiers || []
+          modifiers: item.modifiers || [],
         }))
       };
 
@@ -105,20 +105,20 @@ export default function Cart() {
             </div>
             <div className="flex items-center space-x-3">
               <button 
-                onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                onClick={() => updateQuantity(item.id, item.quantity - 1)}
                 className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
               >
                 <Minus size={16} />
               </button>
               <span className="font-medium w-4 text-center">{item.quantity}</span>
               <button 
-                onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                onClick={() => updateQuantity(item.id, item.quantity + 1)}
                 className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
               >
                 <Plus size={16} />
               </button>
               <button 
-                onClick={() => removeFromCart(item.product.id)}
+                onClick={() => removeFromCart(item.id)}
                 className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 ml-2"
               >
                 <Trash2 size={16} />

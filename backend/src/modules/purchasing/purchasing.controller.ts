@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { PurchasingService } from './purchasing.service';
 import { PurchaseOrder, PurchaseOrderStatus } from './purchase-order.entity';
@@ -34,7 +43,10 @@ export class PurchasingController {
   }
 
   @Put('orders/:id/status')
-  updateStatus(@Param('id') id: string, @Body('status') status: PurchaseOrderStatus) {
+  updateStatus(
+    @Param('id') id: string,
+    @Body('status') status: PurchaseOrderStatus,
+  ) {
     return this.purchasingService.updateStatus(id, status);
   }
 }

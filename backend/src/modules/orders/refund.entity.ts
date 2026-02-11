@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
 import { Order } from './order.entity';
 
 @Entity('refunds')
@@ -21,7 +27,7 @@ export class Refund {
   @Column({
     type: 'enum',
     enum: ['PENDING', 'APPROVED', 'REJECTED'],
-    default: 'PENDING'
+    default: 'PENDING',
   })
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
 

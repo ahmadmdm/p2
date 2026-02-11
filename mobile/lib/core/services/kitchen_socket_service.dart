@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import '../presentation/features/settings/settings_controller.dart';
+import '../../presentation/features/settings/settings_controller.dart';
 
 part 'kitchen_socket_service.g.dart';
 

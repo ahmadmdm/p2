@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Minus, Plus } from 'lucide-react';
 import type { Product, ModifierGroup, ModifierItem } from '../models';
 import { useCart } from '../context/CartContext';
@@ -59,7 +59,7 @@ export default function ProductDetails({ product, onClose }: ProductDetailsProps
     }
 
     // Collect modifiers
-    const selectedModifiers: any[] = [];
+    const selectedModifiers: ModifierItem[] = [];
     product.modifierGroups?.forEach(group => {
       const selectedIds = selections[group.id] || [];
       selectedIds.forEach(id => {

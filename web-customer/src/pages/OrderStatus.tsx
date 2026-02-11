@@ -68,7 +68,7 @@ export default function OrderStatus() {
 
         <div className="space-y-4 text-left border-t pt-6">
           <h3 className="font-semibold text-gray-700">Order Summary</h3>
-          {order.items.map((item: any) => (
+          {order.items.map((item) => (
             <div key={item.id} className="flex justify-between text-sm">
               <span>{item.quantity}x {item.product.name.en}</span>
               <span className="font-medium">${Number(item.price * item.quantity).toFixed(2)}</span>

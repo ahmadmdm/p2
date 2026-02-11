@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/entities/user.dart' as domain;
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/remote/auth_remote_datasource.dart';
-import '../local/database.dart';
+import '../datasources/local/database.dart';
 
 part 'auth_repository_impl.g.dart';
 

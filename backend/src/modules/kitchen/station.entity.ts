@@ -18,7 +18,6 @@ export class Station {
   @Column({ nullable: true, default: 9100 })
   printerPort: number;
 
-
   @OneToMany(() => Product, (product) => product.station)
   products: Product[];
 }

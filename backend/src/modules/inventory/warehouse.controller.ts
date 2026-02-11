@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Warehouse } from './warehouse.entity';
@@ -16,13 +24,18 @@ export class WarehouseController {
   }
 
   @Post()
-  async create(@Body() body: { name: string; address?: string; isMain?: boolean }) {
+  async create(
+    @Body() body: { name: string; address?: string; isMain?: boolean },
+  ) {
     const warehouse = this.warehousesRepo.create(body);
     return this.warehousesRepo.save(warehouse);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() body: { name?: string; address?: string; isMain?: boolean }) {
+  async update(
+    @Param('id') id: string,
+    @Body() body: { name?: string; address?: string; isMain?: boolean },
+  ) {
     await this.warehousesRepo.update(id, body);
     return this.warehousesRepo.findOneBy({ id });
   }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Shift, ShiftStatus } from './shift.entity';
@@ -23,7 +27,9 @@ export class ShiftsService {
   async openShift(user: User, createShiftDto: CreateShiftDto): Promise<Shift> {
     // Idempotency Check: If ID is provided, check if it exists
     if (createShiftDto.id) {
-      const existing = await this.shiftsRepository.findOne({ where: { id: createShiftDto.id } });
+      const existing = await this.shiftsRepository.findOne({
+        where: { id: createShiftDto.id },
+      });
       if (existing) return existing;
     }
 
@@ -31,7 +37,7 @@ export class ShiftsService {
     // If syncing a closed shift, we might allow it? But for now, openShift implies opening.
     // If we sync a CLOSED shift, we probably hit a different flow or sync all at once.
     // But usually we sync sequentially.
-    
+
     const existingOpenShift = await this.shiftsRepository.findOne({
       where: {
         user: { id: user.id },
@@ -40,18 +46,20 @@ export class ShiftsService {
     });
 
     if (existingOpenShift) {
-       // If we are syncing the same shift that is already open, return it
-       if (createShiftDto.id && existingOpenShift.id === createShiftDto.id) {
-         return existingOpenShift;
-       }
-       // Otherwise, it's a conflict
-       throw new BadRequestException('User already has an open shift');
+      // If we are syncing the same shift that is already open, return it
+      if (createShiftDto.id && existingOpenShift.id === createShiftDto.id) {
+        return existingOpenShift;
+      }
+      // Otherwise, it's a conflict
+      throw new BadRequestException('User already has an open shift');
     }
 
     const shift = this.shiftsRepository.create({
       id: createShiftDto.id, // Optional
       user,
-      startTime: createShiftDto.startTime ? new Date(createShiftDto.startTime) : new Date(),
+      startTime: createShiftDto.startTime
+        ? new Date(createShiftDto.startTime)
+        : new Date(),
       startingCash: createShiftDto.startingCash,
       deviceId: createShiftDto.deviceId,
       status: ShiftStatus.OPEN,
@@ -69,11 +77,16 @@ export class ShiftsService {
     });
   }
 
-  async closeShift(userId: string, closeShiftDto: CloseShiftDto): Promise<Shift> {
+  async closeShift(
+    userId: string,
+    closeShiftDto: CloseShiftDto,
+  ): Promise<Shift> {
     let shift: Shift | null;
 
     if (closeShiftDto.shiftId) {
-      shift = await this.shiftsRepository.findOne({ where: { id: closeShiftDto.shiftId, user: { id: userId } } });
+      shift = await this.shiftsRepository.findOne({
+        where: { id: closeShiftDto.shiftId, user: { id: userId } },
+      });
     } else {
       shift = await this.getOpenShift(userId);
     }
@@ -89,7 +102,7 @@ export class ShiftsService {
 
     // Calculate totals
     const endTime = new Date();
-    
+
     // Get all orders for this shift
     const orders = await this.ordersRepository.find({
       where: { shiftId: shift.id },
@@ -124,7 +137,8 @@ export class ShiftsService {
       }
     }
 
-    const expectedCash = Number(shift.startingCash) + totalCashSales + totalCashIn - totalCashOut;
+    const expectedCash =
+      Number(shift.startingCash) + totalCashSales + totalCashIn - totalCashOut;
     const difference = Number(closeShiftDto.endingCash) - expectedCash;
 
     shift.endTime = endTime;
@@ -141,10 +155,15 @@ export class ShiftsService {
     return this.shiftsRepository.save(shift);
   }
 
-  async addCashTransaction(userId: string, dto: CreateCashTransactionDto): Promise<CashTransaction> {
+  async addCashTransaction(
+    userId: string,
+    dto: CreateCashTransactionDto,
+  ): Promise<CashTransaction> {
     let shift: Shift | null;
     if (dto.shiftId) {
-      shift = await this.shiftsRepository.findOne({ where: { id: dto.shiftId, user: { id: userId } } });
+      shift = await this.shiftsRepository.findOne({
+        where: { id: dto.shiftId, user: { id: userId } },
+      });
     } else {
       shift = await this.getOpenShift(userId);
     }

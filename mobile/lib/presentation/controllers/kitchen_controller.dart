@@ -16,7 +16,7 @@ class KitchenController extends _$KitchenController {
     final result = await repository.getKdsOrders(stationId);
     return result.fold(
       (failure) => throw Exception(failure.message),
-      (orders) => orders,
+      (orders) => List<Order>.from(orders),
     );
   }
 

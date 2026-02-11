@@ -8,10 +8,14 @@ export class RecipeItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Product, (product) => product.recipeItems, { nullable: true })
+  @ManyToOne(() => Product, (product) => product.recipeItems, {
+    nullable: true,
+  })
   product: Product | null;
 
-  @ManyToOne(() => ModifierItem, (modifier) => modifier.recipeItems, { nullable: true })
+  @ManyToOne(() => ModifierItem, (modifier) => modifier.recipeItems, {
+    nullable: true,
+  })
   modifierItem: ModifierItem | null;
 
   @ManyToOne(() => Ingredient, (ingredient) => ingredient.recipeItems)

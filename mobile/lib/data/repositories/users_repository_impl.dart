@@ -1,6 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
-import '../../domain/entities/user.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/entities/user.dart' as domain;
 import '../../domain/repositories/users_repository.dart';
 import '../datasources/remote/users_remote_datasource.dart';
 import '../../presentation/features/auth/auth_controller.dart';
@@ -24,19 +24,14 @@ class UsersRepositoryImpl implements UsersRepository {
   String? get _token => _ref.read(authControllerProvider).value?.accessToken;
 
   @override
-  Future<List<User>> getUsers() async {
+  Future<List<domain.User>> getUsers() async {
     if (_token != null) {
-      try {
-        await syncUsers(_token!);
-      } catch (e) {
-        print('Error syncing users: $e');
-      }
+      await syncUsers(_token!);
     }
 
-    // Always return from local DB for consistency
     final localUsers = await _db.select(_db.users).get();
     return localUsers
-        .map((u) => User(
+        .map((u) => domain.User(
               id: u.id,
               name: u.name,
               email: u.email,
@@ -49,11 +44,11 @@ class UsersRepositoryImpl implements UsersRepository {
   @override
   Future<void> syncUsers(String token) async {
     final data = await _remoteDataSource.getUsers(token);
-    final users = data.map((json) => User.fromJson(json)).toList();
+    final users = data.map((json) => domain.User.fromJson(json)).toList();
 
     await _db.batch((batch) {
       for (final u in users) {
-        batch.insertOnConflictUpdate(
+        batch.insert(
           _db.users,
           UsersCompanion(
             id: Value(u.id),
@@ -62,16 +57,26 @@ class UsersRepositoryImpl implements UsersRepository {
             role: Value(u.role),
             pinCode: Value(u.pinCode),
             isActive: const Value(true),
+            isSynced: const Value(true),
           ),
+          mode: InsertMode.insertOrReplace,
         );
       }
     });
   }
 
   @override
-  Future<User> createUser(String name, String email, String password,
-      String role, String? pinCode) async {
-    if (_token == null) throw Exception('Not authenticated');
+  Future<domain.User> createUser(
+    String name,
+    String email,
+    String password,
+    String role,
+    String? pinCode,
+  ) async {
+    final token = _token;
+    if (token == null) {
+      throw Exception('Not authenticated');
+    }
 
     final body = {
       'name': name,
@@ -80,29 +85,37 @@ class UsersRepositoryImpl implements UsersRepository {
       'role': role,
       'pinCode': pinCode,
     };
-    final data = await _remoteDataSource.createUser(_token!, body);
-    final user = User.fromJson(data);
+    final data = await _remoteDataSource.createUser(token, body);
+    final user = domain.User.fromJson(data);
 
-    // Save to local
-    await _db.into(_db.users).insertOnConflictUpdate(UsersCompanion(
-          id: Value(user.id),
-          name: Value(user.name),
-          email: Value(user.email),
-          role: Value(user.role),
-          pinCode: Value(user.pinCode),
-        ));
+    await _db.into(_db.users).insertOnConflictUpdate(
+          UsersCompanion(
+            id: Value(user.id),
+            name: Value(user.name),
+            email: Value(user.email),
+            role: Value(user.role),
+            pinCode: Value(user.pinCode),
+            isActive: const Value(true),
+            isSynced: const Value(true),
+          ),
+        );
 
     return user;
   }
 
   @override
-  Future<User> updateUser(String id,
-      {String? name,
-      String? email,
-      String? password,
-      String? role,
-      String? pinCode}) async {
-    if (_token == null) throw Exception('Not authenticated');
+  Future<domain.User> updateUser(
+    String id, {
+    String? name,
+    String? email,
+    String? password,
+    String? role,
+    String? pinCode,
+  }) async {
+    final token = _token;
+    if (token == null) {
+      throw Exception('Not authenticated');
+    }
 
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
@@ -111,25 +124,31 @@ class UsersRepositoryImpl implements UsersRepository {
     if (role != null) body['role'] = role;
     if (pinCode != null) body['pinCode'] = pinCode;
 
-    final data = await _remoteDataSource.updateUser(_token!, id, body);
-    final user = User.fromJson(data);
+    final data = await _remoteDataSource.updateUser(token, id, body);
+    final user = domain.User.fromJson(data);
 
-    // Save to local
-    await _db.into(_db.users).insertOnConflictUpdate(UsersCompanion(
-          id: Value(user.id),
-          name: Value(user.name),
-          email: Value(user.email),
-          role: Value(user.role),
-          pinCode: Value(user.pinCode),
-        ));
+    await _db.into(_db.users).insertOnConflictUpdate(
+          UsersCompanion(
+            id: Value(user.id),
+            name: Value(user.name),
+            email: Value(user.email),
+            role: Value(user.role),
+            pinCode: Value(user.pinCode),
+            isActive: const Value(true),
+            isSynced: const Value(true),
+          ),
+        );
 
     return user;
   }
 
   @override
   Future<void> deleteUser(String id) async {
-    if (_token == null) throw Exception('Not authenticated');
-    await _remoteDataSource.deleteUser(_token!, id);
+    final token = _token;
+    if (token == null) {
+      throw Exception('Not authenticated');
+    }
+    await _remoteDataSource.deleteUser(token, id);
     await (_db.delete(_db.users)..where((t) => t.id.equals(id))).go();
   }
 }

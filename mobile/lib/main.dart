@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'presentation/features/auth/login_screen.dart';
 import 'core/services/sync_service.dart';
 import 'core/services/kitchen_socket_service.dart';
@@ -44,3 +44,4 @@ class POSApp extends ConsumerWidget {
     );
   }
 }
+

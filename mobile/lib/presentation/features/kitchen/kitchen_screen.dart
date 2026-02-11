@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
 import '../../../domain/entities/order.dart' as domain;
+import '../../../domain/entities/order_item.dart' as order_item;
 import '../../../domain/entities/order_status.dart';
-import '../../core/services/printing_service.dart';
+import '../../../core/services/printing_service.dart';
 import 'kitchen_controller.dart';
 
 class KitchenScreen extends ConsumerStatefulWidget {
@@ -126,7 +127,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
     final itemsToShow = order.items.where((i) => i.status != 'HELD').toList();
     if (itemsToShow.isEmpty) return const SizedBox.shrink();
 
-    final itemsByCourse = <String, List<domain.OrderItem>>{};
+    final itemsByCourse = <String, List<order_item.OrderItem>>{};
     for (final item in itemsToShow) {
       final course = item.product.course;
       itemsByCourse.putIfAbsent(course, () => []).add(item);
@@ -186,7 +187,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    ...itemsByCourse[course]!.map((item) => Padding(
+                    ...((itemsByCourse[course] ?? const <order_item.OrderItem>[]).map((item) => Padding(
                           padding:
                               const EdgeInsets.only(left: 8.0, bottom: 4.0),
                           child: Column(
@@ -217,7 +218,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
                                 ),
                             ],
                           ),
-                        )),
+                        ))),
                     const Divider(height: 12),
                   ],
                 )),
@@ -256,3 +257,4 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
     );
   }
 }
+

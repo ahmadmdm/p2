@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Customer } from './customer.entity';
 
 export enum LoyaltyTransactionType {
@@ -25,7 +32,7 @@ export class LoyaltyTransaction {
   @Column({
     type: 'simple-enum',
     enum: LoyaltyTransactionType,
-    default: LoyaltyTransactionType.EARN
+    default: LoyaltyTransactionType.EARN,
   })
   type: LoyaltyTransactionType;
 

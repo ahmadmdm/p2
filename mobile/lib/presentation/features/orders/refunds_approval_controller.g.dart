@@ -6,7 +6,7 @@ part of 'refunds_approval_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$pendingRefundsHash() => r'501c27971955560ad0a0cc6e5028df827a782f07';
+String _$pendingRefundsHash() => r'34deba132935ba6eac91b48243706ee65e27a7c1';
 
 /// See also [pendingRefunds].
 @ProviderFor(pendingRefunds)
@@ -24,7 +24,7 @@ final pendingRefundsProvider = AutoDisposeFutureProvider<List<Refund>>.internal(
 // ignore: unused_element
 typedef PendingRefundsRef = AutoDisposeFutureProviderRef<List<Refund>>;
 String _$refundsActionsControllerHash() =>
-    r'564b7f4a31b63af26a5709d54864b1bfe3307772';
+    r'f31b6d23f0ed184eb8189558a09ecf87b6b83881';
 
 /// See also [RefundsActionsController].
 @ProviderFor(RefundsActionsController)

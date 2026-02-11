@@ -28,6 +28,65 @@ class OrdersRepositoryImpl implements OrdersRepository {
 
   OrdersRepositoryImpl(this._remoteDataSource, this._localDataSource);
 
+  bool _isTakeawayTableHint(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'takeaway' ||
+        normalized == 'take away' ||
+        normalized == 'to go' ||
+        normalized == 'pickup' ||
+        normalized == 'سفري';
+  }
+
+  String? _resolveTableIdentifier(Order order) {
+    final raw = order.tableNumber?.trim();
+    if (raw == null || raw.isEmpty || _isTakeawayTableHint(raw)) {
+      return null;
+    }
+    return raw;
+  }
+
+  OrderType _resolveOrderTypeForSync(Order order, String? tableIdentifier) {
+    if (order.type == OrderType.DINE_IN &&
+        (tableIdentifier == null || tableIdentifier.isEmpty)) {
+      return OrderType.TAKEAWAY;
+    }
+    return order.type;
+  }
+
+  bool _isDineInTableError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('table not found') ||
+        message.contains('table id is required for dine-in orders');
+  }
+
+  Map<String, dynamic> _buildCreateOrderDto({
+    required Order order,
+    required String? tableIdentifier,
+    required OrderType orderType,
+  }) {
+    return {
+      'tableId': tableIdentifier,
+      'type': orderType.name,
+      'deliveryAddress': order.deliveryAddress,
+      'deliveryFee': order.deliveryFee,
+      'taxAmount': order.taxAmount,
+      'discountAmount': order.discountAmount,
+      'paymentMethod': order.paymentMethod,
+      'customerId': order.customerId,
+      'items': order.items
+          .map((item) => {
+                'productId': item.product.id,
+                'quantity': item.quantity,
+                'taxAmount': item.taxAmount,
+                'discountAmount': item.discountAmount,
+                'notes': item.notes,
+                'status': item.status,
+                'modifiers': item.modifiers.map((m) => m.toJson()).toList(),
+              })
+          .toList(),
+    };
+  }
+
   @override
   Future<List<Order>> fetchOrders(String token) async {
     // 1. Fetch Remote Orders
@@ -63,7 +122,13 @@ class OrdersRepositoryImpl implements OrdersRepository {
   Future<Order> createOrder(Order order, {String? token}) async {
     // 1. Assign a temporary ID if not present (though entity usually has it)
     final tempId = order.id.isEmpty ? _uuid.v4() : order.id;
-    final orderToSave = order.copyWith(id: tempId, status: OrderStatus.PENDING);
+    final normalizedItems =
+        order.items.map((item) => item.copyWith(id: _uuid.v4())).toList();
+    final orderToSave = order.copyWith(
+      id: tempId,
+      status: OrderStatus.PENDING,
+      items: normalizedItems,
+    );
 
     // 2. Save to Local DB (Always save locally first for offline-first)
     await _localDataSource.saveOrder(orderToSave);
@@ -71,28 +136,14 @@ class OrdersRepositoryImpl implements OrdersRepository {
     // 3. If Online (token provided), try to Sync
     if (token != null) {
       try {
-        // Map Order to Backend DTO
-        final dto = {
-          'tableId': order.tableNumber,
-          'type': order.type.name,
-          'deliveryAddress': order.deliveryAddress,
-          'deliveryFee': order.deliveryFee,
-          'taxAmount': order.taxAmount,
-          'discountAmount': order.discountAmount,
-          'paymentMethod': order.paymentMethod,
-          'customerId': order.customerId,
-          'items': order.items
-              .map((item) => {
-                    'productId': item.product.id,
-                    'quantity': item.quantity,
-                    'taxAmount': item.taxAmount,
-                    'discountAmount': item.discountAmount,
-                    'notes': item.notes,
-                    'status': item.status,
-                    'modifiers': item.modifiers.map((m) => m.toJson()).toList(),
-                  })
-              .toList(),
-        };
+        final tableIdentifier = _resolveTableIdentifier(orderToSave);
+        final orderType = _resolveOrderTypeForSync(orderToSave, tableIdentifier);
+
+        final dto = _buildCreateOrderDto(
+          order: orderToSave,
+          tableIdentifier: tableIdentifier,
+          orderType: orderType,
+        );
 
         final result = await _remoteDataSource.createOrder(token, dto);
 
@@ -102,6 +153,22 @@ class OrdersRepositoryImpl implements OrdersRepository {
 
         return _mapOrder(result);
       } catch (e) {
+        if (_isDineInTableError(e) && orderToSave.type == OrderType.DINE_IN) {
+          try {
+            final fallbackDto = _buildCreateOrderDto(
+              order: orderToSave,
+              tableIdentifier: null,
+              orderType: OrderType.TAKEAWAY,
+            );
+            final fallbackResult =
+                await _remoteDataSource.createOrder(token, fallbackDto);
+            await _localDataSource.deleteOrder(tempId);
+            return _mapOrder(fallbackResult);
+          } catch (_) {
+            // Keep local copy for later retry if fallback also fails.
+          }
+        }
+
         // Failed to sync, keep it local (it's already saved with isSynced=false)
         print('Failed to sync order: $e');
         // We could maybe update status to 'failed_sync' if we wanted
@@ -173,33 +240,35 @@ class OrdersRepositoryImpl implements OrdersRepository {
     final unsyncedOrders = await _localDataSource.getUnsyncedOrders();
     for (final order in unsyncedOrders) {
       try {
-        final dto = {
-          'tableId': order.tableNumber,
-          'type': order.type.name,
-          'deliveryAddress': order.deliveryAddress,
-          'deliveryFee': order.deliveryFee,
-          'taxAmount': order.taxAmount,
-          'discountAmount': order.discountAmount,
-          'paymentMethod': order.paymentMethod,
-          'customerId': order.customerId,
-          'items': order.items
-              .map((item) => {
-                    'productId': item.product.id,
-                    'quantity': item.quantity,
-                    'taxAmount': item.taxAmount,
-                    'discountAmount': item.discountAmount,
-                    'notes': item.notes,
-                    'status': item.status,
-                    'modifiers': item.modifiers.map((m) => m.toJson()).toList(),
-                  })
-              .toList(),
-        };
+        final tableIdentifier = _resolveTableIdentifier(order);
+        final orderType = _resolveOrderTypeForSync(order, tableIdentifier);
+
+        final dto = _buildCreateOrderDto(
+          order: order,
+          tableIdentifier: tableIdentifier,
+          orderType: orderType,
+        );
 
         await _remoteDataSource.createOrder(token, dto);
 
         // Delete local temp order after successful sync
         await _localDataSource.deleteOrder(order.id);
       } catch (e) {
+        if (_isDineInTableError(e) && order.type == OrderType.DINE_IN) {
+          try {
+            final fallbackDto = _buildCreateOrderDto(
+              order: order,
+              tableIdentifier: null,
+              orderType: OrderType.TAKEAWAY,
+            );
+            await _remoteDataSource.createOrder(token, fallbackDto);
+            await _localDataSource.deleteOrder(order.id);
+            continue;
+          } catch (_) {
+            // Keep local order unsynced and continue retry loop.
+          }
+        }
+
         print('Failed to sync order ${order.id}: $e');
       }
     }
@@ -219,6 +288,9 @@ class OrdersRepositoryImpl implements OrdersRepository {
           : (json['deliveryFee'] as num?)?.toDouble() ?? 0.0,
       paymentMethod: json['paymentMethod'] ?? 'LATER',
       paymentStatus: json['paymentStatus'] ?? 'PENDING',
+      customerId: json['customerId'],
+      customerName: json['customer']?['name'],
+      notes: json['notes'],
       totalAmount: json['totalAmount'] is String
           ? double.parse(json['totalAmount'])
           : (json['totalAmount'] as num).toDouble(),

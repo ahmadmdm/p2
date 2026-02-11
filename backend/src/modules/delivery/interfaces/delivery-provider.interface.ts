@@ -1,9 +1,8 @@
-
 import { Order } from '../../orders/order.entity';
 
 export interface DeliveryProvider {
   name: string;
-  
+
   /**
    * Validate if the address is deliverable
    */

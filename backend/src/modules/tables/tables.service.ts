@@ -47,8 +47,18 @@ export class TablesService {
         // Only update layout fields to avoid accidental overwrites of other data if payload is messy
         // But for now, we trust the payload or just spread it.
         // Let's filter to layout fields + tableNumber/section
-        const { x, y, width, height, shape, rotation, section, tableNumber } = t;
-        await this.tablesRepository.update(t.id, { x, y, width, height, shape, rotation, section, tableNumber });
+        const { x, y, width, height, shape, rotation, section, tableNumber } =
+          t;
+        await this.tablesRepository.update(t.id, {
+          x,
+          y,
+          width,
+          height,
+          shape,
+          rotation,
+          section,
+          tableNumber,
+        });
         savedTables.push(await this.findOne(t.id));
       }
     }

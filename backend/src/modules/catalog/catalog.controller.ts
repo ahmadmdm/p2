@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { CatalogService } from './catalog.service';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -64,7 +73,10 @@ export class CatalogController {
 
   @Post('categories/:categoryId/products')
   @UseGuards(AuthGuard('jwt'))
-  async createProduct(@Param('categoryId') categoryId: string, @Body() body: any) {
+  async createProduct(
+    @Param('categoryId') categoryId: string,
+    @Body() body: any,
+  ) {
     return this.catalogService.createProduct(categoryId, body);
   }
 

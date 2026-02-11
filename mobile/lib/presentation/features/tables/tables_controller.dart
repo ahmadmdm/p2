@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../domain/entities/restaurant_table.dart';
 import '../../../data/repositories/tables_repository_impl.dart';
-import '../../core/services/kitchen_socket_service.dart';
+import '../../../core/services/kitchen_socket_service.dart';
 
 part 'tables_controller.g.dart';
 

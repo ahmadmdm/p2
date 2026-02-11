@@ -7,7 +7,7 @@ import '../../domain/entities/product.dart' as domain;
 import '../../domain/entities/modifier.dart';
 import '../../domain/entities/station.dart';
 import '../datasources/remote/catalog_remote_datasource.dart';
-import '../local/database.dart';
+import '../datasources/local/database.dart';
 
 part 'catalog_repository_impl.g.dart';
 
@@ -23,6 +23,107 @@ class CatalogRepositoryImpl implements CatalogRepository {
   final CatalogRemoteDataSource _remoteDataSource;
 
   CatalogRepositoryImpl(this._db, this._remoteDataSource);
+
+  double _toDouble(dynamic value, {double fallback = 0}) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      return double.tryParse(value) ?? fallback;
+    }
+    return fallback;
+  }
+
+  int _toInt(dynamic value, {int fallback = 0}) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      return int.tryParse(value) ?? fallback;
+    }
+    return fallback;
+  }
+
+  Map<String, String> _extractName(dynamic rawName) {
+    if (rawName is Map) {
+      final nameMap = Map<String, dynamic>.from(rawName);
+      return {
+        'en': nameMap['en']?.toString() ?? '',
+        'ar': nameMap['ar']?.toString() ?? '',
+      };
+    }
+    if (rawName is String) {
+      return {'en': rawName, 'ar': rawName};
+    }
+    return {'en': '', 'ar': ''};
+  }
+
+  ModifierItem? _parseModifierItem(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+    final json = Map<String, dynamic>.from(raw);
+    final name = _extractName(json['name']);
+
+    return ModifierItem(
+      id: json['id']?.toString() ?? '',
+      nameEn: (json['nameEn'] as String?)?.trim().isNotEmpty == true
+          ? json['nameEn'] as String
+          : name['en'] ?? '',
+      nameAr: (json['nameAr'] as String?)?.trim().isNotEmpty == true
+          ? json['nameAr'] as String
+          : name['ar'] ?? '',
+      price: _toDouble(json['price']),
+    );
+  }
+
+  ModifierGroup? _parseModifierGroup(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+    final json = Map<String, dynamic>.from(raw);
+    final name = _extractName(json['name']);
+    final rawItems = json['items'];
+    final parsedItems = rawItems is List
+        ? rawItems
+            .map(_parseModifierItem)
+            .whereType<ModifierItem>()
+            .toList(growable: false)
+        : const <ModifierItem>[];
+
+    return ModifierGroup(
+      id: json['id']?.toString() ?? '',
+      nameEn: (json['nameEn'] as String?)?.trim().isNotEmpty == true
+          ? json['nameEn'] as String
+          : name['en'] ?? '',
+      nameAr: (json['nameAr'] as String?)?.trim().isNotEmpty == true
+          ? json['nameAr'] as String
+          : name['ar'] ?? '',
+      selectionType: json['selectionType']?.toString() ?? 'SINGLE',
+      minSelection: _toInt(json['minSelection']),
+      maxSelection: _toInt(json['maxSelection'], fallback: 1),
+      items: parsedItems,
+    );
+  }
+
+  List<ModifierGroup> _decodeModifierGroups(String? rawJson) {
+    if (rawJson == null || rawJson.isEmpty) {
+      return const [];
+    }
+
+    final decoded = jsonDecode(rawJson);
+    if (decoded is! List) {
+      return const [];
+    }
+
+    return decoded
+        .map(_parseModifierGroup)
+        .whereType<ModifierGroup>()
+        .toList(growable: false);
+  }
 
   @override
   Stream<List<domain.Category>> watchCategories() {
@@ -49,11 +150,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
                 nameAr: row.nameAr,
                 price: row.price,
                 isAvailable: row.isAvailable,
-                modifierGroups: row.modifierGroups != null
-                    ? (jsonDecode(row.modifierGroups!) as List)
-                        .map((e) => ModifierGroup.fromJson(e))
-                        .toList()
-                    : [],
+                modifierGroups: _decodeModifierGroups(row.modifierGroups),
                 station: row.station != null
                     ? Station.fromJson(jsonDecode(row.station!))
                     : null,
@@ -83,19 +180,30 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
       // Upsert Products
       for (final prod in remoteProducts) {
+        final productName = _extractName(prod['name']);
+        final categoryRaw = prod['category'];
+        final categoryId = categoryRaw is Map
+            ? categoryRaw['id']?.toString() ?? ''
+            : categoryRaw?.toString() ?? '';
+        final parsedModifierGroups = (prod['modifierGroups'] is List
+                ? (prod['modifierGroups'] as List)
+                    .map(_parseModifierGroup)
+                    .whereType<ModifierGroup>()
+                    .toList(growable: false)
+                : const <ModifierGroup>[])
+            .map((group) => group.toJson())
+            .toList(growable: false);
+
         await _db.into(_db.products).insertOnConflictUpdate(
               ProductsCompanion(
                 id: Value(prod['id']),
-                categoryId: Value(prod['category']
-                    ['id']), // Ensure backend sends category object or ID
-                nameEn: Value(prod['name']['en']),
-                nameAr: Value(prod['name']['ar']),
-                price: Value(prod['price'] is String
-                    ? double.parse(prod['price'])
-                    : (prod['price'] as num).toDouble()),
+                categoryId: Value(categoryId),
+                nameEn: Value(productName['en'] ?? ''),
+                nameAr: Value(productName['ar'] ?? ''),
+                price: Value(_toDouble(prod['price'])),
                 isAvailable: Value(prod['isAvailable'] ?? true),
-                modifierGroups: Value(prod['modifierGroups'] != null
-                    ? jsonEncode(prod['modifierGroups'])
+                modifierGroups: Value(parsedModifierGroups.isNotEmpty
+                    ? jsonEncode(parsedModifierGroups)
                     : null),
                 station: Value(prod['station'] != null
                     ? jsonEncode(prod['station'])

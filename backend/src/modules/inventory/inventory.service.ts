@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import { Ingredient } from './ingredient.entity';
@@ -26,10 +30,12 @@ export class InventoryService {
   ) {}
 
   private async getMainWarehouse(manager?: EntityManager): Promise<Warehouse> {
-    const repo = manager ? manager.getRepository(Warehouse) : this.warehousesRepo;
+    const repo = manager
+      ? manager.getRepository(Warehouse)
+      : this.warehousesRepo;
     const main = await repo.findOne({ where: { isMain: true } });
     if (main) return main;
-    
+
     // Create default main warehouse if none exists
     const newMain = repo.create({ name: 'Main Warehouse', isMain: true });
     return repo.save(newMain);
@@ -42,23 +48,33 @@ export class InventoryService {
   }
 
   async findAllIngredients() {
-    return this.ingredientsRepo.find({ relations: ['stock', 'stock.warehouse'] });
+    return this.ingredientsRepo.find({
+      relations: ['stock', 'stock.warehouse'],
+    });
   }
 
   // --- Stock ---
   async updateStock(
-    ingredientId: string, 
-    quantityChange: number, 
-    manager?: EntityManager, 
+    ingredientId: string,
+    quantityChange: number,
+    manager?: EntityManager,
     warehouseId?: string,
     reason: string = 'ADJUSTMENT',
     referenceId?: string,
-    notes?: string
+    notes?: string,
   ) {
-    const repo = manager ? manager.getRepository(InventoryItem) : this.inventoryRepo;
-    const ingredientRepo = manager ? manager.getRepository(Ingredient) : this.ingredientsRepo;
-    const warehouseRepo = manager ? manager.getRepository(Warehouse) : this.warehousesRepo;
-    const logsRepo = manager ? manager.getRepository(InventoryLog) : this.logsRepo;
+    const repo = manager
+      ? manager.getRepository(InventoryItem)
+      : this.inventoryRepo;
+    const ingredientRepo = manager
+      ? manager.getRepository(Ingredient)
+      : this.ingredientsRepo;
+    const warehouseRepo = manager
+      ? manager.getRepository(Warehouse)
+      : this.warehousesRepo;
+    const logsRepo = manager
+      ? manager.getRepository(InventoryLog)
+      : this.logsRepo;
 
     let warehouse: Warehouse;
     if (warehouseId) {
@@ -69,23 +85,23 @@ export class InventoryService {
       warehouse = await this.getMainWarehouse(manager);
     }
 
-    let stock = await repo.findOne({ 
-      where: { 
+    let stock = await repo.findOne({
+      where: {
         ingredient: { id: ingredientId },
-        warehouse: { id: warehouse.id }
+        warehouse: { id: warehouse.id },
       },
-      relations: ['ingredient', 'warehouse']
+      relations: ['ingredient', 'warehouse'],
     });
 
     if (!stock) {
       // Create if not exists (assume 0 initial)
       const ingredient = await ingredientRepo.findOneBy({ id: ingredientId });
       if (!ingredient) throw new NotFoundException('Ingredient not found');
-      
-      stock = repo.create({ 
-        ingredient, 
+
+      stock = repo.create({
+        ingredient,
         warehouse,
-        quantity: 0 
+        quantity: 0,
       });
     }
 
@@ -102,7 +118,7 @@ export class InventoryService {
       referenceId,
       notes,
       oldQuantity,
-      newQuantity: stock.quantity
+      newQuantity: stock.quantity,
     });
     await logsRepo.save(log);
 
@@ -110,43 +126,59 @@ export class InventoryService {
   }
 
   // --- Recipes ---
-  async addRecipeItem(productId: string, ingredientId: string, quantity: number) {
+  async addRecipeItem(
+    productId: string,
+    ingredientId: string,
+    quantity: number,
+  ) {
     const product = await this.productsRepo.findOneBy({ id: productId });
-    const ingredient = await this.ingredientsRepo.findOneBy({ id: ingredientId });
-    
-    if (!product || !ingredient) throw new NotFoundException('Product or Ingredient not found');
+    const ingredient = await this.ingredientsRepo.findOneBy({
+      id: ingredientId,
+    });
+
+    if (!product || !ingredient)
+      throw new NotFoundException('Product or Ingredient not found');
 
     const recipeItem = this.recipesRepo.create({
       product,
       ingredient,
-      quantity
+      quantity,
     });
     return this.recipesRepo.save(recipeItem);
   }
 
-  async addModifierRecipeItem(modifierId: string, ingredientId: string, quantity: number) {
+  async addModifierRecipeItem(
+    modifierId: string,
+    ingredientId: string,
+    quantity: number,
+  ) {
     // We need to inject ModifierItem repo or use manager, but we can't inject it easily without module circular dep.
     // For now, let's assume we can query it via manager or use a simpler approach if module structure allows.
     // Ideally InventoryModule should import CatalogModule.
     // But CatalogModule imports InventoryModule? Circular.
     // Let's rely on passed in IDs or query using raw query if needed, OR just assume valid ID if we can't verify easily.
     // Better: use EntityManager to find generic entity.
-    
+
     // Actually, we can use the repository if we inject it. But let's check module.
     // InventoryModule imports Product, but not ModifierItem.
     // I should add ModifierItem to InventoryModule imports.
-    return this.recipesRepo.manager.transaction(async manager => {
-       const modifier = await manager.getRepository('ModifierItem').findOneBy({ id: modifierId });
-       const ingredient = await this.ingredientsRepo.findOneBy({ id: ingredientId });
+    return this.recipesRepo.manager.transaction(async (manager) => {
+      const modifier = await manager
+        .getRepository('ModifierItem')
+        .findOneBy({ id: modifierId });
+      const ingredient = await this.ingredientsRepo.findOneBy({
+        id: ingredientId,
+      });
 
-       if (!modifier || !ingredient) throw new NotFoundException('Modifier or Ingredient not found');
+      if (!modifier || !ingredient)
+        throw new NotFoundException('Modifier or Ingredient not found');
 
-       const recipeItem = this.recipesRepo.create({
-         modifierItem: modifier, // This needs TypeORM to know about ModifierItem
-         ingredient,
-         quantity
-       });
-       return manager.save(recipeItem);
+      const recipeItem = this.recipesRepo.create({
+        modifierItem: modifier, // This needs TypeORM to know about ModifierItem
+        ingredient,
+        quantity,
+      });
+      return manager.save(recipeItem);
     });
   }
 
@@ -172,7 +204,9 @@ export class InventoryService {
 
   // --- Consumption Logic ---
 
-  async checkStockAvailability(items: { productId: string; quantity: number; modifierIds: string[] }[]): Promise<boolean> {
+  async checkStockAvailability(
+    items: { productId: string; quantity: number; modifierIds: string[] }[],
+  ): Promise<boolean> {
     // 1. Calculate total required ingredients
     const requiredIngredients = new Map<string, number>();
 
@@ -185,7 +219,10 @@ export class InventoryService {
 
       for (const recipe of productRecipes) {
         const current = requiredIngredients.get(recipe.ingredient.id) || 0;
-        requiredIngredients.set(recipe.ingredient.id, current + (Number(recipe.quantity) * item.quantity));
+        requiredIngredients.set(
+          recipe.ingredient.id,
+          current + Number(recipe.quantity) * item.quantity,
+        );
       }
 
       // Modifiers Recipe
@@ -193,13 +230,16 @@ export class InventoryService {
         for (const modId of item.modifierIds) {
           // Use a workaround to find by modifierItem since we might not have the repo injected directly but relation exists
           const modRecipes = await this.recipesRepo.find({
-             where: { modifierItem: { id: modId } },
-             relations: ['ingredient'],
+            where: { modifierItem: { id: modId } },
+            relations: ['ingredient'],
           });
-          
+
           for (const recipe of modRecipes) {
             const current = requiredIngredients.get(recipe.ingredient.id) || 0;
-            requiredIngredients.set(recipe.ingredient.id, current + (Number(recipe.quantity) * item.quantity));
+            requiredIngredients.set(
+              recipe.ingredient.id,
+              current + Number(recipe.quantity) * item.quantity,
+            );
           }
         }
       }
@@ -209,9 +249,9 @@ export class InventoryService {
     const mainWarehouse = await this.getMainWarehouse();
     for (const [ingredientId, requiredQty] of requiredIngredients.entries()) {
       const stock = await this.inventoryRepo.findOne({
-        where: { 
+        where: {
           ingredient: { id: ingredientId },
-          warehouse: { id: mainWarehouse.id }
+          warehouse: { id: mainWarehouse.id },
         },
       });
 
@@ -225,7 +265,7 @@ export class InventoryService {
 
   async deductStockForOrder(
     items: { productId: string; quantity: number; modifierIds: string[] }[],
-    manager: EntityManager
+    manager: EntityManager,
   ): Promise<void> {
     const inventoryRepo = manager.getRepository(InventoryItem);
     const recipesRepo = manager.getRepository(RecipeItem);
@@ -238,28 +278,36 @@ export class InventoryService {
       });
 
       for (const recipe of productRecipes) {
-        await this.deductIngredientStock(recipe.ingredient.id, Number(recipe.quantity) * item.quantity, manager);
+        await this.deductIngredientStock(
+          recipe.ingredient.id,
+          Number(recipe.quantity) * item.quantity,
+          manager,
+        );
       }
 
       // Deduct Modifier Recipe
       if (item.modifierIds && item.modifierIds.length > 0) {
-         for (const modId of item.modifierIds) {
-           const modRecipes = await recipesRepo.find({
-             where: { modifierItem: { id: modId } },
-             relations: ['ingredient'],
-           });
+        for (const modId of item.modifierIds) {
+          const modRecipes = await recipesRepo.find({
+            where: { modifierItem: { id: modId } },
+            relations: ['ingredient'],
+          });
 
-           for (const recipe of modRecipes) {
-             await this.deductIngredientStock(recipe.ingredient.id, Number(recipe.quantity) * item.quantity, manager);
-           }
-         }
+          for (const recipe of modRecipes) {
+            await this.deductIngredientStock(
+              recipe.ingredient.id,
+              Number(recipe.quantity) * item.quantity,
+              manager,
+            );
+          }
+        }
       }
     }
   }
 
   async restoreStockForOrder(
     items: { productId: string; quantity: number; modifierIds: string[] }[],
-    manager: EntityManager
+    manager: EntityManager,
   ): Promise<void> {
     const recipesRepo = manager.getRepository(RecipeItem);
 
@@ -271,37 +319,49 @@ export class InventoryService {
       });
 
       for (const recipe of productRecipes) {
-        await this.updateStock(recipe.ingredient.id, Number(recipe.quantity) * item.quantity, manager);
+        await this.updateStock(
+          recipe.ingredient.id,
+          Number(recipe.quantity) * item.quantity,
+          manager,
+        );
       }
 
       // Restore Modifier Recipe
       if (item.modifierIds && item.modifierIds.length > 0) {
-         for (const modId of item.modifierIds) {
-           const modRecipes = await recipesRepo.find({
-             where: { modifierItem: { id: modId } },
-             relations: ['ingredient'],
-           });
+        for (const modId of item.modifierIds) {
+          const modRecipes = await recipesRepo.find({
+            where: { modifierItem: { id: modId } },
+            relations: ['ingredient'],
+          });
 
-           for (const recipe of modRecipes) {
-             await this.updateStock(recipe.ingredient.id, Number(recipe.quantity) * item.quantity, manager);
-           }
-         }
+          for (const recipe of modRecipes) {
+            await this.updateStock(
+              recipe.ingredient.id,
+              Number(recipe.quantity) * item.quantity,
+              manager,
+            );
+          }
+        }
       }
     }
   }
 
-  private async deductIngredientStock(ingredientId: string, amount: number, manager: EntityManager) {
+  private async deductIngredientStock(
+    ingredientId: string,
+    amount: number,
+    manager: EntityManager,
+  ) {
     const inventoryRepo = manager.getRepository(InventoryItem);
     const ingredientRepo = manager.getRepository(Ingredient);
     const logsRepo = manager.getRepository(InventoryLog);
-    
+
     const mainWarehouse = await this.getMainWarehouse(manager);
 
     // Use lock to handle concurrency safely
     const stock = await inventoryRepo.findOne({
-      where: { 
+      where: {
         ingredient: { id: ingredientId },
-        warehouse: { id: mainWarehouse.id }
+        warehouse: { id: mainWarehouse.id },
       },
       // lock: { mode: 'pessimistic_write' } // SQLite doesn't support pessimistic_write well, avoid if using SQLite. Postgres supports it.
       // Assuming Postgres as per requirements. But if dev env is SQLite, this might fail.
@@ -312,30 +372,31 @@ export class InventoryService {
       stock.quantity = Number(stock.quantity) - amount;
       await inventoryRepo.save(stock);
     } else {
-        // Create negative stock entry
-        const ingredient = await ingredientRepo.findOneBy({ id: ingredientId });
-        if (ingredient) {
-            const newStock = inventoryRepo.create({
-                ingredient,
-                warehouse: mainWarehouse,
-                quantity: -amount
-            });
-            await inventoryRepo.save(newStock);
-        }
+      // Create negative stock entry
+      const ingredient = await ingredientRepo.findOneBy({ id: ingredientId });
+      if (ingredient) {
+        const newStock = inventoryRepo.create({
+          ingredient,
+          warehouse: mainWarehouse,
+          quantity: -amount,
+        });
+        await inventoryRepo.save(newStock);
+      }
     }
 
     // Log
     const log = logsRepo.create({
-        ingredient: { id: ingredientId },
-        warehouse: { id: mainWarehouse.id },
-        quantityChange: -amount,
-        reason: 'SALE'
+      ingredient: { id: ingredientId },
+      warehouse: { id: mainWarehouse.id },
+      quantityChange: -amount,
+      reason: 'SALE',
     });
     await logsRepo.save(log);
   }
 
   async getInventoryLogs(startDate?: Date, endDate?: Date) {
-    const query = this.logsRepo.createQueryBuilder('log')
+    const query = this.logsRepo
+      .createQueryBuilder('log')
       .leftJoinAndSelect('log.ingredient', 'ingredient')
       .leftJoinAndSelect('log.warehouse', 'warehouse')
       .orderBy('log.createdAt', 'DESC');

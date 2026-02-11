@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
+import type { ReactNode } from 'react';
 import api from '../api';
 
 interface Customer {
@@ -18,24 +19,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+function readStoredCustomer(): Customer | null {
+  const saved = localStorage.getItem('customer');
+  if (!saved) {
+    return null;
+  }
 
-  useEffect(() => {
-    // Check localStorage
-    const saved = localStorage.getItem('customer');
-    if (saved) {
-      setCustomer(JSON.parse(saved));
-    }
-    setIsLoading(false);
-  }, []);
+  try {
+    return JSON.parse(saved) as Customer;
+  } catch {
+    return null;
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [customer, setCustomer] = useState<Customer | null>(readStoredCustomer);
+  const [isLoading] = useState(false);
 
   const login = async (phoneNumber: string) => {
     try {
       const res = await api.post('/customers/login', { phoneNumber });
       if (res.data.customer) {
-        setCustomer(res.data.customer);
+        setCustomer(res.data.customer as Customer);
         localStorage.setItem('customer', JSON.stringify(res.data.customer));
         return true;
       }
@@ -50,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await api.post('/customers', { name, phoneNumber });
       if (res.data) {
-        setCustomer(res.data);
+        setCustomer(res.data as Customer);
         localStorage.setItem('customer', JSON.stringify(res.data));
       }
     } catch (error) {
@@ -69,12 +74,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+// eslint-disable-next-line react-refresh/only-export-components
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

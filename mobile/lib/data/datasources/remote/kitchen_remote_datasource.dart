@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../core/services/network_service.dart';
+import '../../../core/services/network_service.dart';
 import '../../../domain/entities/order.dart';
 import '../../../domain/entities/order_item.dart';
 import '../../../domain/entities/product.dart';
@@ -56,6 +56,9 @@ class KitchenRemoteDataSource {
       status: _parseOrderStatus(json['status']),
       paymentMethod: json['paymentMethod'] ?? 'LATER',
       paymentStatus: json['paymentStatus'] ?? 'PENDING',
+      customerId: json['customerId'],
+      customerName: json['customer']?['name'],
+      notes: json['notes'],
       totalAmount: json['totalAmount'] is String
           ? double.parse(json['totalAmount'])
           : (json['totalAmount'] as num).toDouble(),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import '../../home/home_providers.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
+import '../home/home_providers.dart';
 import '../../../domain/entities/modifier.dart';
 import 'recipes_screen.dart';
 
@@ -10,16 +10,45 @@ class ModifiersListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final productsAsync = ref.watch(productsProvider);
+    final productsAsync = ref.watch(productsStreamProvider);
 
     return productsAsync.when(
       data: (products) {
         // Extract all modifiers
         final allModifiers = <String, ModifierItem>{};
         for (var product in products) {
-          for (var group in product.modifierGroups) {
-            for (var item in group.items) {
-              allModifiers[item.id] = item;
+          for (final group in product.modifierGroups) {
+            final rawItems = (group as dynamic).items;
+            if (rawItems is! Iterable) {
+              continue;
+            }
+            for (final rawItem in rawItems) {
+              if (rawItem is ModifierItem) {
+                allModifiers[rawItem.id] = rawItem;
+                continue;
+              }
+
+              if (rawItem is Map) {
+                final itemJson = Map<String, dynamic>.from(rawItem);
+                final nameJson = itemJson['name'];
+                final itemNameEn = itemJson['nameEn']?.toString() ??
+                    (nameJson is Map ? nameJson['en']?.toString() : null) ??
+                    '';
+                final itemNameAr = itemJson['nameAr']?.toString() ??
+                    (nameJson is Map ? nameJson['ar']?.toString() : null) ??
+                    '';
+                final itemPriceRaw = itemJson['price'];
+                final itemPrice = itemPriceRaw is num
+                    ? itemPriceRaw.toDouble()
+                    : double.tryParse(itemPriceRaw?.toString() ?? '') ?? 0;
+                final item = ModifierItem(
+                  id: itemJson['id']?.toString() ?? '',
+                  nameEn: itemNameEn,
+                  nameAr: itemNameAr,
+                  price: itemPrice,
+                );
+                allModifiers[item.id] = item;
+              }
             }
           }
         }

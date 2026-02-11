@@ -12,6 +12,8 @@ class Order extends Equatable {
   final String paymentMethod; // CASH, CARD, ONLINE, LATER
   final String paymentStatus; // PENDING, PAID
   final String? customerId;
+  final String? customerName;
+  final String? notes;
   final List<OrderItem> items;
   final List<Refund>? refunds;
   final double totalAmount;
@@ -32,6 +34,8 @@ class Order extends Equatable {
     this.paymentMethod = 'LATER',
     this.paymentStatus = 'PENDING',
     this.customerId,
+    this.customerName,
+    this.notes,
     required this.items,
     this.refunds,
     required this.totalAmount,
@@ -54,6 +58,8 @@ class Order extends Equatable {
         paymentMethod,
         paymentStatus,
         customerId,
+        customerName,
+        notes,
         items,
         refunds,
         totalAmount,
@@ -75,6 +81,8 @@ class Order extends Equatable {
     String? paymentMethod,
     String? paymentStatus,
     String? customerId,
+    String? customerName,
+    String? notes,
     List<OrderItem>? items,
     List<Refund>? refunds,
     double? totalAmount,
@@ -95,6 +103,8 @@ class Order extends Equatable {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       customerId: customerId ?? this.customerId,
+      customerName: customerName ?? this.customerName,
+      notes: notes ?? this.notes,
       items: items ?? this.items,
       refunds: refunds ?? this.refunds,
       totalAmount: totalAmount ?? this.totalAmount,

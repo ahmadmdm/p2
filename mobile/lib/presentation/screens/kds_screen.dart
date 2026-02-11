@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/kitchen/kitchen_controller.dart';
 import '../../../domain/entities/order.dart';
 import '../../../domain/entities/order_item.dart';
+import '../../../domain/entities/order_status.dart';
 
 class KdsScreen extends ConsumerStatefulWidget {
   const KdsScreen({super.key});
@@ -86,9 +87,9 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildOrderList(orders, 'PENDING'),
-              _buildOrderList(orders, 'PREPARING'),
-              _buildOrderList(orders, 'READY'),
+              _buildOrderList(orders, OrderStatus.PENDING),
+              _buildOrderList(orders, OrderStatus.PREPARING),
+              _buildOrderList(orders, OrderStatus.READY),
             ],
           );
         },
@@ -98,7 +99,7 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
     );
   }
 
-  Widget _buildOrderList(List<Order> orders, String status) {
+  Widget _buildOrderList(List<Order> orders, OrderStatus status) {
     // Filter orders that have items in this status OR are in this status overall
     // Actually, KDS usually shows orders in their "most relevant" column.
     // Let's filter by Order Status for the column, but inside show items.

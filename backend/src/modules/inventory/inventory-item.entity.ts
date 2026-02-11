@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, Unique } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Unique,
+} from 'typeorm';
 import { Ingredient } from './ingredient.entity';
 import { Warehouse } from './warehouse.entity';
 
@@ -11,7 +17,9 @@ export class InventoryItem {
   @ManyToOne(() => Ingredient, (ingredient) => ingredient.stock)
   ingredient: Ingredient;
 
-  @ManyToOne(() => Warehouse, (warehouse) => warehouse.items, { nullable: true })
+  @ManyToOne(() => Warehouse, (warehouse) => warehouse.items, {
+    nullable: true,
+  })
   warehouse: Warehouse;
 
   @Column('decimal', { precision: 10, scale: 3, default: 0 })

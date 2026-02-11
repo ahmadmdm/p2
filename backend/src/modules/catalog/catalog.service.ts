@@ -16,7 +16,11 @@ export class CatalogService {
   // Categories
   async findAllCategories(): Promise<Category[]> {
     return this.categoryRepository.find({
-      relations: ['products', 'products.modifierGroups', 'products.modifierGroups.items'],
+      relations: [
+        'products',
+        'products.modifierGroups',
+        'products.modifierGroups.items',
+      ],
       order: { sortOrder: 'ASC' },
     });
   }
@@ -24,7 +28,11 @@ export class CatalogService {
   async findCategoryById(id: string): Promise<Category> {
     const category = await this.categoryRepository.findOne({
       where: { id },
-      relations: ['products', 'products.modifierGroups', 'products.modifierGroups.items'],
+      relations: [
+        'products',
+        'products.modifierGroups',
+        'products.modifierGroups.items',
+      ],
     });
     if (!category) {
       throw new NotFoundException(`Category with ID ${id} not found`);
@@ -68,7 +76,10 @@ export class CatalogService {
     return product;
   }
 
-  async createProduct(categoryId: string, data: Partial<Product>): Promise<Product> {
+  async createProduct(
+    categoryId: string,
+    data: Partial<Product>,
+  ): Promise<Product> {
     const category = await this.findCategoryById(categoryId);
     const product = this.productRepository.create({ ...data, category });
     return this.productRepository.save(product);

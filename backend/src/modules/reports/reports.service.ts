@@ -42,8 +42,12 @@ export class ReportsService {
       { header: 'Items', key: 'items', width: 50 },
     ];
 
-    orders.forEach(order => {
-      const itemsStr = order.items.map(i => `${i.product.name['en'] || i.product.name} (x${i.quantity})`).join(', ');
+    orders.forEach((order) => {
+      const itemsStr = order.items
+        .map(
+          (i) => `${i.product.name['en'] || i.product.name} (x${i.quantity})`,
+        )
+        .join(', ');
       sheet.addRow({
         id: order.id,
         date: order.createdAt.toISOString(),
@@ -54,7 +58,10 @@ export class ReportsService {
     });
 
     // Add summary row
-    const totalSales = orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+    const totalSales = orders.reduce(
+      (sum, o) => sum + Number(o.totalAmount),
+      0,
+    );
     sheet.addRow({});
     sheet.addRow({ date: 'TOTAL', total: totalSales });
 
@@ -63,7 +70,7 @@ export class ReportsService {
 
   async generateSalesPdf(startDate: Date, endDate: Date): Promise<Buffer> {
     const orders = await this.getSalesByDateRange(startDate, endDate);
-    
+
     return new Promise((resolve) => {
       const doc = new PDFDocument();
       const buffers: Buffer[] = [];
@@ -75,20 +82,31 @@ export class ReportsService {
 
       doc.fontSize(20).text('Sales Report', { align: 'center' });
       doc.moveDown();
-      doc.fontSize(12).text(`From: ${startDate.toISOString().split('T')[0]} To: ${endDate.toISOString().split('T')[0]}`);
+      doc
+        .fontSize(12)
+        .text(
+          `From: ${startDate.toISOString().split('T')[0]} To: ${endDate.toISOString().split('T')[0]}`,
+        );
       doc.moveDown();
 
       let totalSales = 0;
 
       orders.forEach((order, index) => {
-        doc.fontSize(10).text(`Order #${order.id.substring(0, 8)} - ${order.createdAt.toISOString().split('T')[0]} - $${order.totalAmount}`);
+        doc
+          .fontSize(10)
+          .text(
+            `Order #${order.id.substring(0, 8)} - ${order.createdAt.toISOString().split('T')[0]} - $${order.totalAmount}`,
+          );
         // doc.text(`Items: ${order.items.map(i => i.product.name['en']).join(', ')}`, { color: 'gray' });
         totalSales += Number(order.totalAmount);
         doc.moveDown(0.5);
       });
 
       doc.moveDown();
-      doc.fontSize(14).font('Helvetica-Bold').text(`Total Sales: $${totalSales.toFixed(2)}`);
+      doc
+        .fontSize(14)
+        .font('Helvetica-Bold')
+        .text(`Total Sales: $${totalSales.toFixed(2)}`);
 
       doc.end();
     });
@@ -118,7 +136,10 @@ export class ReportsService {
       },
     });
 
-    const totalSales = orders.reduce((sum, order) => sum + Number(order.totalAmount), 0);
+    const totalSales = orders.reduce(
+      (sum, order) => sum + Number(order.totalAmount),
+      0,
+    );
     const orderCount = orders.length;
 
     return {
@@ -151,7 +172,8 @@ export class ReportsService {
       .addSelect('SUM(item.price * item.quantity)', 'totalSales')
       .groupBy('category.id')
       .addGroupBy('category.name')
-      .orderBy('totalSales', 'DESC')
+      // Avoid postgres alias-case issues by ordering on the aggregate expression.
+      .orderBy('SUM(item.price * item.quantity)', 'DESC')
       .getRawMany();
   }
 }

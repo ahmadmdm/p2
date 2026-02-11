@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../domain/entities/recipe_item.dart';
-import '../../../../data/repositories/inventory_repository_impl.dart';
+import '../../../domain/entities/recipe_item.dart';
+import '../../../data/repositories/inventory_repository_impl.dart';
 
 part 'recipes_controller.g.dart';
 

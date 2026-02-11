@@ -34,7 +34,7 @@ const Login = () => {
           setIsRegistering(true);
         }
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
     }
   };

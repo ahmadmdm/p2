@@ -59,7 +59,7 @@ class ShiftsRepositoryImpl implements ShiftsRepository {
             deviceId: Value(deviceId),
             startTime: DateTime.now(),
             startingCash: startingCash,
-            status: 'OPEN',
+            status: const Value('OPEN'),
             isSynced: const Value(false),
           ),
         );

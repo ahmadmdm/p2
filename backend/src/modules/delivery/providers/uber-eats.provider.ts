@@ -15,7 +15,7 @@ export class UberEatsProvider implements DeliveryProvider {
   async requestDelivery(order: Order): Promise<string> {
     // Call Uber Eats API to create delivery
     this.logger.log(`Requesting Uber Eats delivery for order ${order.id}`);
-    
+
     // Simulate API call
     const referenceId = `UBER-${Date.now()}-${order.id.substring(0, 8)}`;
     return referenceId;

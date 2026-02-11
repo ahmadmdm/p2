@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'inventory_controller.dart';
 import '../../../../domain/entities/purchase_order.dart';
-import '../../../../domain/entities/supplier.dart';
 
 class PurchaseOrdersScreen extends ConsumerWidget {
   const PurchaseOrdersScreen({super.key});
@@ -164,10 +163,12 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(AppLocalizations.of(context)!
-                    .supplierLabel(currentPO.supplier?.name ?? "Unknown")),
                 Text(
-                    AppLocalizations.of(context)!.total(currentPO.totalAmount)),
+                  '${AppLocalizations.of(context)!.suppliers}: ${currentPO.supplier?.name ?? "Unknown"}',
+                ),
+                Text(
+                  '${AppLocalizations.of(context)!.total}: ${currentPO.totalAmount.toStringAsFixed(2)}',
+                ),
                 Text(
                     '${AppLocalizations.of(context)!.notesDescription}: ${currentPO.notes ?? "-"}'),
                 if (currentPO.status == 'draft')
@@ -302,3 +303,4 @@ class _AddPOItemDialogState extends ConsumerState<AddPOItemDialog> {
     );
   }
 }
+

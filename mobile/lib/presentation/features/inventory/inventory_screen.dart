@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import '../../data/repositories/inventory_repository_impl.dart';
-import '../../data/repositories/orders_repository_impl.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
+import '../../../data/repositories/inventory_repository_impl.dart';
+import '../../../data/repositories/orders_repository_impl.dart';
 import '../auth/auth_controller.dart';
 import 'suppliers_screen.dart';
 import 'purchase_orders_screen.dart';
@@ -105,3 +105,4 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     );
   }
 }
+

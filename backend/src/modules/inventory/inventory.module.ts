@@ -12,7 +12,14 @@ import { InventoryLog } from './inventory-log.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Ingredient, InventoryItem, RecipeItem, Product, Warehouse, InventoryLog]),
+    TypeOrmModule.forFeature([
+      Ingredient,
+      InventoryItem,
+      RecipeItem,
+      Product,
+      Warehouse,
+      InventoryLog,
+    ]),
   ],
   controllers: [InventoryController, WarehouseController],
   providers: [InventoryService],

@@ -5,6 +5,8 @@ enum OrderStatus {
   SERVED,
   COMPLETED,
   CANCELLED,
+  VOIDED,
+  REFUNDED,
   HELD,
   ON_DELIVERY,
   DELIVERED,
@@ -24,6 +26,10 @@ OrderStatus parseOrderStatus(String status) {
       return OrderStatus.COMPLETED;
     case 'CANCELLED':
       return OrderStatus.CANCELLED;
+    case 'VOIDED':
+      return OrderStatus.VOIDED;
+    case 'REFUNDED':
+      return OrderStatus.REFUNDED;
     case 'HELD':
       return OrderStatus.HELD;
     case 'ON_DELIVERY':
@@ -50,6 +56,10 @@ extension OrderStatusExtension on OrderStatus {
         return 'COMPLETED';
       case OrderStatus.CANCELLED:
         return 'CANCELLED';
+      case OrderStatus.VOIDED:
+        return 'VOIDED';
+      case OrderStatus.REFUNDED:
+        return 'REFUNDED';
       case OrderStatus.HELD:
         return 'HELD';
       case OrderStatus.ON_DELIVERY:

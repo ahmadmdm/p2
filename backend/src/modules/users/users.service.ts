@@ -12,7 +12,7 @@ export class UsersService {
   ) {}
 
   async findOneByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findOne({ 
+    return this.usersRepository.findOne({
       where: { email },
       select: ['id', 'email', 'passwordHash', 'name', 'role', 'isActive'], // Explicitly select passwordHash
     });
@@ -34,13 +34,13 @@ export class UsersService {
   async update(id: string, updateData: Partial<User>): Promise<User> {
     const user = await this.findOneById(id);
     if (!user) throw new NotFoundException('User not found');
-    
+
     if (updateData.passwordHash) {
-        // Hash it if it's being updated directly (usually service caller hashes it, but let's be safe if we move logic here)
-        // Actually Auth service does hashing. Let's assume caller handles hashing or we do it here.
-        // For simplicity, let's assume the controller passes already hashed password or we handle it in controller.
-        // But better: handle it here if passed as plain text?
-        // Let's keep it simple: updateData contains what to save.
+      // Hash it if it's being updated directly (usually service caller hashes it, but let's be safe if we move logic here)
+      // Actually Auth service does hashing. Let's assume caller handles hashing or we do it here.
+      // For simplicity, let's assume the controller passes already hashed password or we handle it in controller.
+      // But better: handle it here if passed as plain text?
+      // Let's keep it simple: updateData contains what to save.
     }
 
     Object.assign(user, updateData);

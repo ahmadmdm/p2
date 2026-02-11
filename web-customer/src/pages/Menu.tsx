@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
-import { Category, Product } from '../models';
+import type { Category, Product } from '../models';
 import { useCart } from '../context/CartContext';
 import { ShoppingCart, Plus } from 'lucide-react';
 import ProductDetails from '../components/ProductDetails';
@@ -33,7 +33,7 @@ export default function Menu() {
       }
     };
     fetchMenu();
-  }, []);
+  }, [tableId]);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -99,7 +99,7 @@ export default function Menu() {
           <div key={cat.id} id={cat.id} className={activeCategory === cat.id ? 'block' : 'hidden'}>
             <h2 className="font-bold text-xl mb-4">{cat.name.en}</h2>
             <div className="grid grid-cols-1 gap-4">
-              {(cat as any).products?.map((product: Product) => (
+              {(cat.products ?? []).map((product: Product) => (
                 <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
                   <div className="flex-1">
                     <h3 className="font-semibold">{product.name.en}</h3>

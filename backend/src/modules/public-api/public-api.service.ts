@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { TablesService } from '../tables/tables.service';
 import { CatalogService } from '../catalog/catalog.service';
 import { OrdersService } from '../orders/orders.service';
@@ -24,7 +28,7 @@ export class PublicApiService {
     // Assuming findAllCategories returns categories with products, or we need to fetch products
     // CatalogService.findAllCategories() usually just returns categories.
     // We probably want the full menu structure for the PWA.
-    // Let's check CatalogService capabilities. 
+    // Let's check CatalogService capabilities.
     // If it doesn't have a "full menu" method, we might need to construct it.
     // For now, let's return what findAllCategories provides.
     return {
@@ -41,7 +45,7 @@ export class PublicApiService {
 
   async createOrder(token: string, orderData: any): Promise<Order> {
     const table = await this.validateTableToken(token);
-    
+
     // Inject the correct tableId into the order data
     const createOrderDto = {
       ...orderData,
@@ -50,26 +54,26 @@ export class PublicApiService {
     };
 
     // We might want to mark this order as "Self Order" somehow.
-    // OrdersService.createOrder doesn't explicitly support a "source" field yet, 
+    // OrdersService.createOrder doesn't explicitly support a "source" field yet,
     // but we can add notes or handle it if needed.
     // For now, passing it to OrdersService is sufficient.
-    
+
     return this.ordersService.createOrder(createOrderDto);
   }
 
   async getOrder(token: string, publicId: string) {
     const table = await this.validateTableToken(token);
     const order = await this.ordersService.findOne(publicId);
-    
+
     if (!order) {
-        throw new NotFoundException('Order not found');
+      throw new NotFoundException('Order not found');
     }
 
     // Security check: ensure the order belongs to the table associated with the token
     if (!order.table || order.table.id !== table.id) {
       throw new NotFoundException('Order not found for this table');
     }
-    
+
     return order;
   }
 

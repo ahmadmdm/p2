@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Query, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  Patch,
+} from '@nestjs/common';
 import { KitchenService } from './kitchen.service';
 import { Station } from './station.entity';
 
@@ -30,7 +38,10 @@ export class KitchenController {
   }
 
   @Patch('items/:id/status')
-  async updateItemStatus(@Param('id') id: string, @Body('status') status: string) {
+  async updateItemStatus(
+    @Param('id') id: string,
+    @Body('status') status: string,
+  ) {
     return this.kitchenService.updateItemStatus(id, status);
   }
 }

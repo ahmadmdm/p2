@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:customer_web/l10n/app_localizations.dart';
 import '../../providers/cart_provider.dart';
 
 class ProductDetailsDialog extends StatefulWidget {
@@ -88,7 +88,7 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Maximum ${max} selection allowed for ${group['name']['en'] ?? group['name']}',
+                  'Maximum $max selection allowed for ${group['name']['en'] ?? group['name']}',
                 ),
               ),
             );
@@ -193,7 +193,7 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
                               false;
 
                           return isSingle
-                              ? RadioListTile<String>(
+                              ? ListTile(
                                   title: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -205,13 +205,13 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
                                         ),
                                     ],
                                   ),
-                                  value: item['id'],
-                                  groupValue: _selectedModifiers[group['id']]
-                                      ?.firstOrNull?['id'],
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      _toggleModifier(group, item, true);
-                                    }
+                                  trailing: Icon(
+                                    isSelected
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_off,
+                                  ),
+                                  onTap: () {
+                                    _toggleModifier(group, item, true);
                                   },
                                 )
                               : CheckboxListTile(
@@ -328,8 +328,4 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
       ),
     );
   }
-}
-
-extension ListFirstOrNull<E> on List<E> {
-  E? get firstOrNull => isEmpty ? null : first;
 }

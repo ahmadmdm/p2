@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, ManyToMany, JoinTable, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
+  CreateDateColumn,
+} from 'typeorm';
 import { Category } from './category.entity';
 import { RecipeItem } from '../inventory/recipe-item.entity';
 import { ModifierGroup } from './modifier-group.entity';

@@ -1,4 +1,3 @@
-
 import { Logger } from '@nestjs/common';
 import { DeliveryProvider } from '../interfaces/delivery-provider.interface';
 import { Order } from '../../orders/order.entity';
@@ -8,7 +7,9 @@ export class MockAggregatorProvider implements DeliveryProvider {
   private readonly logger = new Logger(MockAggregatorProvider.name);
 
   async checkServiceability(address: any): Promise<boolean> {
-    this.logger.log(`Checking serviceability for address: ${JSON.stringify(address)}`);
+    this.logger.log(
+      `Checking serviceability for address: ${JSON.stringify(address)}`,
+    );
     return true;
   }
 
@@ -25,6 +26,9 @@ export class MockAggregatorProvider implements DeliveryProvider {
   }
 
   async getDeliveryStatus(referenceId: string): Promise<any> {
-    return { status: 'driver_assigned', driver: { name: 'John Doe', phone: '555-0123' } };
+    return {
+      status: 'driver_assigned',
+      driver: { name: 'John Doe', phone: '555-0123' },
+    };
   }
 }

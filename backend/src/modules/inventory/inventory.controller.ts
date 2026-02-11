@@ -23,7 +23,15 @@ export class InventoryController {
     @Body('reason') reason?: string,
     @Body('notes') notes?: string,
   ) {
-    return this.inventoryService.updateStock(ingredientId, change, undefined, warehouseId, reason, undefined, notes);
+    return this.inventoryService.updateStock(
+      ingredientId,
+      change,
+      undefined,
+      warehouseId,
+      reason,
+      undefined,
+      notes,
+    );
   }
 
   @Post('recipes')
@@ -39,7 +47,12 @@ export class InventoryController {
 
   @Post('recipes/modifier')
   addModifierRecipeItem(
-    @Body() body: { modifierId: string; ingredientId: string; quantity: number },
+    @Body()
+    body: {
+      modifierId: string;
+      ingredientId: string;
+      quantity: number;
+    },
   ) {
     return this.inventoryService.addModifierRecipeItem(
       body.modifierId,
@@ -69,8 +82,8 @@ export class InventoryController {
     @Query('endDate') endDate?: string,
   ) {
     return this.inventoryService.getInventoryLogs(
-      startDate ? new Date(startDate) : undefined, 
-      endDate ? new Date(endDate) : undefined
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
     );
   }
 }

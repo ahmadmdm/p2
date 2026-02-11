@@ -2,6 +2,7 @@ export interface Category {
   id: string;
   name: { en: string; ar: string };
   sortOrder: number;
+  products?: Product[];
 }
 
 export interface ModifierItem {
@@ -40,7 +41,8 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   price: number;
-  modifiers?: any[];
+  modifiers?: ModifierItem[];
+  notes?: string;
 }
 
 export interface CreateOrderDto {
@@ -52,6 +54,13 @@ export interface Order {
   id: string;
   status: string;
   totalAmount: number;
-  items: any[];
+  items: Array<{
+    id: string;
+    quantity: number;
+    price: number;
+    product: Product;
+    notes?: string;
+    modifiers?: ModifierItem[];
+  }>;
   createdAt: string;
 }

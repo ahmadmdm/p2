@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'users_controller.dart';
 import '../../../domain/entities/user.dart';
 
@@ -244,3 +244,4 @@ class _UserDialogState extends ConsumerState<UserDialog> {
     );
   }
 }
+

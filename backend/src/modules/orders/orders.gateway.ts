@@ -48,8 +48,8 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   notifyBillRequested(table: any) {
-    this.server.emit('billRequested', { 
-      tableId: table.id, 
+    this.server.emit('billRequested', {
+      tableId: table.id,
       tableNumber: table.tableNumber,
       timestamp: new Date(),
     });

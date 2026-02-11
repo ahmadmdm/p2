@@ -1,8 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
 import { Shift } from './shift.entity';
 
 export enum TransactionType {
-  IN = 'IN',   // Pay In
+  IN = 'IN', // Pay In
   OUT = 'OUT', // Pay Out
 }
 
@@ -11,7 +17,9 @@ export class CashTransaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Shift, (shift) => shift.cashTransactions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Shift, (shift) => shift.cashTransactions, {
+    onDelete: 'CASCADE',
+  })
   shift: Shift;
 
   @Column({

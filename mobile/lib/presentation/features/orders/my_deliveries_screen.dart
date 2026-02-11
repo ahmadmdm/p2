@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
 import '../../../domain/entities/order.dart';
 import '../../../domain/entities/order_status.dart';
 import 'my_deliveries_controller.dart';
-import 'package:intl/intl.dart';
 
 class MyDeliveriesScreen extends ConsumerWidget {
   const MyDeliveriesScreen({super.key});
@@ -188,9 +187,12 @@ class _DeliveryOrderCard extends ConsumerWidget {
       case OrderStatus.SERVED:
         return Colors.green;
       case OrderStatus.CANCELLED:
+      case OrderStatus.VOIDED:
+      case OrderStatus.REFUNDED:
         return Colors.red;
       case OrderStatus.HELD:
         return Colors.grey;
     }
   }
 }
+

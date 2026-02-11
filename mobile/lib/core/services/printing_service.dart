@@ -86,7 +86,7 @@ class PrintingService {
         for (final mod in item.modifiers) {
           bytes += generator.row([
             PosColumn(
-                text: ' + ${mod.name['en']}',
+                text: ' + ${mod.nameEn}',
                 width: 8,
                 styles: const PosStyles(fontType: PosFontType.fontB)),
             PosColumn(
@@ -201,11 +201,7 @@ class PrintingService {
         styles: const PosStyles(
             height: PosTextSize.size2, width: PosTextSize.size2, bold: true));
     bytes += generator.text('Time: ${dateFormat.format(order.createdAt)}');
-    
-    if (order.notes != null && order.notes!.isNotEmpty) {
-       bytes += generator.text('Order Note: ${order.notes}', styles: const PosStyles(bold: true));
-    }
-    
+
     bytes += generator.hr();
 
     // Items
@@ -256,5 +252,9 @@ class PrintingService {
      } catch (e) {
         return false;
      }
+  }
+
+  Future<void> printKitchenTicket(Order order, {String? onlyCourse}) async {
+    await printStationTickets(order, onlyCourse: onlyCourse);
   }
 }

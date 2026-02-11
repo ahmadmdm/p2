@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
+import 'package:uuid/uuid.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_screen.dart';
 import '../tables/floor_plan_screen.dart';
@@ -13,15 +14,13 @@ import 'cart_controller.dart';
 import 'cart_state.dart';
 import 'widgets/product_details_dialog.dart';
 import '../inventory/recipes_screen.dart';
-import 'package:pos_mobile/data/repositories/catalog_repository_impl.dart';
-import 'package:pos_mobile/data/repositories/inventory_repository_impl.dart';
-import 'package:pos_mobile/data/repositories/users_repository_impl.dart';
 import '../reports/reports_screen.dart';
 import '../orders/delivery_orders_screen.dart';
 import '../../../domain/entities/customer.dart' as domain;
 import '../../../domain/entities/order.dart' as domain;
 import '../../../domain/entities/order_item.dart' as domain;
 import '../../../domain/entities/order_status.dart';
+import '../../../domain/entities/order_type.dart' as domain;
 import '../../../data/repositories/customers_repository_impl.dart';
 import '../../../data/repositories/orders_repository_impl.dart';
 import '../../../core/services/sync_service.dart';
@@ -625,7 +624,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
     );
 
-    if (tableNumber == null || tableNumber.isEmpty) return;
+    if (tableNumber == null) return;
+
+    final normalizedTableInput = tableNumber.trim();
+    if (normalizedTableInput.isEmpty) return;
+
+    final normalizedLower = normalizedTableInput.toLowerCase();
+    final isTakeaway = normalizedLower == 'takeaway' ||
+        normalizedLower == 'take away' ||
+        normalizedLower == 'to go' ||
+        normalizedLower == 'pickup' ||
+        normalizedLower == 'سفري';
+
+    final orderType =
+        isTakeaway ? domain.OrderType.TAKEAWAY : domain.OrderType.DINE_IN;
+    final tableIdentifier = isTakeaway ? null : normalizedTableInput;
 
     // 2. Ask for Payment Method
     if (!context.mounted) return;
@@ -692,9 +705,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     try {
       // Construct Order
       final cartState = ref.read(cartControllerProvider);
+      const uuid = Uuid();
       final order = domain.Order(
-        id: '', // Will be generated
-        tableNumber: tableNumber,
+        id: uuid.v4(),
+        tableNumber: tableIdentifier,
+        type: orderType,
         status: OrderStatus.PENDING,
         paymentMethod: paymentMethod,
         customerId: cartState.selectedCustomer?.id,
@@ -709,7 +724,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         createdAt: DateTime.now(),
         items: cartItems
             .map((item) => domain.OrderItem(
-                  id: '',
+                  id: uuid.v4(),
                   quantity: item.quantity,
                   price: item.product.price,
                   notes: item.notes,

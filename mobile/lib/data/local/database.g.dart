@@ -614,9 +614,37 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("is_available" IN (0, 1))'),
       defaultValue: const Constant(true));
+  static const VerificationMeta _modifierGroupsMeta =
+      const VerificationMeta('modifierGroups');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, categoryId, nameEn, nameAr, price, isAvailable];
+  late final GeneratedColumn<String> modifierGroups = GeneratedColumn<String>(
+      'modifier_groups', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _stationMeta =
+      const VerificationMeta('station');
+  @override
+  late final GeneratedColumn<String> station = GeneratedColumn<String>(
+      'station', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _courseMeta = const VerificationMeta('course');
+  @override
+  late final GeneratedColumn<String> course = GeneratedColumn<String>(
+      'course', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('OTHER'));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        categoryId,
+        nameEn,
+        nameAr,
+        price,
+        isAvailable,
+        modifierGroups,
+        station,
+        course
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -664,6 +692,20 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           isAvailable.isAcceptableOrUnknown(
               data['is_available']!, _isAvailableMeta));
     }
+    if (data.containsKey('modifier_groups')) {
+      context.handle(
+          _modifierGroupsMeta,
+          modifierGroups.isAcceptableOrUnknown(
+              data['modifier_groups']!, _modifierGroupsMeta));
+    }
+    if (data.containsKey('station')) {
+      context.handle(_stationMeta,
+          station.isAcceptableOrUnknown(data['station']!, _stationMeta));
+    }
+    if (data.containsKey('course')) {
+      context.handle(_courseMeta,
+          course.isAcceptableOrUnknown(data['course']!, _courseMeta));
+    }
     return context;
   }
 
@@ -685,6 +727,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           .read(DriftSqlType.double, data['${effectivePrefix}price'])!,
       isAvailable: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_available'])!,
+      modifierGroups: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}modifier_groups']),
+      station: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}station']),
+      course: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}course'])!,
     );
   }
 
@@ -701,13 +749,19 @@ class Product extends DataClass implements Insertable<Product> {
   final String nameAr;
   final double price;
   final bool isAvailable;
+  final String? modifierGroups;
+  final String? station;
+  final String course;
   const Product(
       {required this.id,
       required this.categoryId,
       required this.nameEn,
       required this.nameAr,
       required this.price,
-      required this.isAvailable});
+      required this.isAvailable,
+      this.modifierGroups,
+      this.station,
+      required this.course});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -717,6 +771,13 @@ class Product extends DataClass implements Insertable<Product> {
     map['name_ar'] = Variable<String>(nameAr);
     map['price'] = Variable<double>(price);
     map['is_available'] = Variable<bool>(isAvailable);
+    if (!nullToAbsent || modifierGroups != null) {
+      map['modifier_groups'] = Variable<String>(modifierGroups);
+    }
+    if (!nullToAbsent || station != null) {
+      map['station'] = Variable<String>(station);
+    }
+    map['course'] = Variable<String>(course);
     return map;
   }
 
@@ -728,6 +789,13 @@ class Product extends DataClass implements Insertable<Product> {
       nameAr: Value(nameAr),
       price: Value(price),
       isAvailable: Value(isAvailable),
+      modifierGroups: modifierGroups == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modifierGroups),
+      station: station == null && nullToAbsent
+          ? const Value.absent()
+          : Value(station),
+      course: Value(course),
     );
   }
 
@@ -741,6 +809,9 @@ class Product extends DataClass implements Insertable<Product> {
       nameAr: serializer.fromJson<String>(json['nameAr']),
       price: serializer.fromJson<double>(json['price']),
       isAvailable: serializer.fromJson<bool>(json['isAvailable']),
+      modifierGroups: serializer.fromJson<String?>(json['modifierGroups']),
+      station: serializer.fromJson<String?>(json['station']),
+      course: serializer.fromJson<String>(json['course']),
     );
   }
   @override
@@ -753,6 +824,9 @@ class Product extends DataClass implements Insertable<Product> {
       'nameAr': serializer.toJson<String>(nameAr),
       'price': serializer.toJson<double>(price),
       'isAvailable': serializer.toJson<bool>(isAvailable),
+      'modifierGroups': serializer.toJson<String?>(modifierGroups),
+      'station': serializer.toJson<String?>(station),
+      'course': serializer.toJson<String>(course),
     };
   }
 
@@ -762,7 +836,10 @@ class Product extends DataClass implements Insertable<Product> {
           String? nameEn,
           String? nameAr,
           double? price,
-          bool? isAvailable}) =>
+          bool? isAvailable,
+          Value<String?> modifierGroups = const Value.absent(),
+          Value<String?> station = const Value.absent(),
+          String? course}) =>
       Product(
         id: id ?? this.id,
         categoryId: categoryId ?? this.categoryId,
@@ -770,6 +847,10 @@ class Product extends DataClass implements Insertable<Product> {
         nameAr: nameAr ?? this.nameAr,
         price: price ?? this.price,
         isAvailable: isAvailable ?? this.isAvailable,
+        modifierGroups:
+            modifierGroups.present ? modifierGroups.value : this.modifierGroups,
+        station: station.present ? station.value : this.station,
+        course: course ?? this.course,
       );
   Product copyWithCompanion(ProductsCompanion data) {
     return Product(
@@ -781,6 +862,11 @@ class Product extends DataClass implements Insertable<Product> {
       price: data.price.present ? data.price.value : this.price,
       isAvailable:
           data.isAvailable.present ? data.isAvailable.value : this.isAvailable,
+      modifierGroups: data.modifierGroups.present
+          ? data.modifierGroups.value
+          : this.modifierGroups,
+      station: data.station.present ? data.station.value : this.station,
+      course: data.course.present ? data.course.value : this.course,
     );
   }
 
@@ -792,14 +878,17 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('nameEn: $nameEn, ')
           ..write('nameAr: $nameAr, ')
           ..write('price: $price, ')
-          ..write('isAvailable: $isAvailable')
+          ..write('isAvailable: $isAvailable, ')
+          ..write('modifierGroups: $modifierGroups, ')
+          ..write('station: $station, ')
+          ..write('course: $course')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, categoryId, nameEn, nameAr, price, isAvailable);
+  int get hashCode => Object.hash(id, categoryId, nameEn, nameAr, price,
+      isAvailable, modifierGroups, station, course);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -809,7 +898,10 @@ class Product extends DataClass implements Insertable<Product> {
           other.nameEn == this.nameEn &&
           other.nameAr == this.nameAr &&
           other.price == this.price &&
-          other.isAvailable == this.isAvailable);
+          other.isAvailable == this.isAvailable &&
+          other.modifierGroups == this.modifierGroups &&
+          other.station == this.station &&
+          other.course == this.course);
 }
 
 class ProductsCompanion extends UpdateCompanion<Product> {
@@ -819,6 +911,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String> nameAr;
   final Value<double> price;
   final Value<bool> isAvailable;
+  final Value<String?> modifierGroups;
+  final Value<String?> station;
+  final Value<String> course;
   final Value<int> rowid;
   const ProductsCompanion({
     this.id = const Value.absent(),
@@ -827,6 +922,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.nameAr = const Value.absent(),
     this.price = const Value.absent(),
     this.isAvailable = const Value.absent(),
+    this.modifierGroups = const Value.absent(),
+    this.station = const Value.absent(),
+    this.course = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsCompanion.insert({
@@ -836,6 +934,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     required String nameAr,
     required double price,
     this.isAvailable = const Value.absent(),
+    this.modifierGroups = const Value.absent(),
+    this.station = const Value.absent(),
+    this.course = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         categoryId = Value(categoryId),
@@ -849,6 +950,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? nameAr,
     Expression<double>? price,
     Expression<bool>? isAvailable,
+    Expression<String>? modifierGroups,
+    Expression<String>? station,
+    Expression<String>? course,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -858,6 +962,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (nameAr != null) 'name_ar': nameAr,
       if (price != null) 'price': price,
       if (isAvailable != null) 'is_available': isAvailable,
+      if (modifierGroups != null) 'modifier_groups': modifierGroups,
+      if (station != null) 'station': station,
+      if (course != null) 'course': course,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -869,6 +976,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       Value<String>? nameAr,
       Value<double>? price,
       Value<bool>? isAvailable,
+      Value<String?>? modifierGroups,
+      Value<String?>? station,
+      Value<String>? course,
       Value<int>? rowid}) {
     return ProductsCompanion(
       id: id ?? this.id,
@@ -877,6 +987,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       nameAr: nameAr ?? this.nameAr,
       price: price ?? this.price,
       isAvailable: isAvailable ?? this.isAvailable,
+      modifierGroups: modifierGroups ?? this.modifierGroups,
+      station: station ?? this.station,
+      course: course ?? this.course,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -902,6 +1015,15 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (isAvailable.present) {
       map['is_available'] = Variable<bool>(isAvailable.value);
     }
+    if (modifierGroups.present) {
+      map['modifier_groups'] = Variable<String>(modifierGroups.value);
+    }
+    if (station.present) {
+      map['station'] = Variable<String>(station.value);
+    }
+    if (course.present) {
+      map['course'] = Variable<String>(course.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -917,6 +1039,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('nameAr: $nameAr, ')
           ..write('price: $price, ')
           ..write('isAvailable: $isAvailable, ')
+          ..write('modifierGroups: $modifierGroups, ')
+          ..write('station: $station, ')
+          ..write('course: $course, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1258,6 +1383,9 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   required String nameAr,
   required double price,
   Value<bool> isAvailable,
+  Value<String?> modifierGroups,
+  Value<String?> station,
+  Value<String> course,
   Value<int> rowid,
 });
 typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
@@ -1267,6 +1395,9 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String> nameAr,
   Value<double> price,
   Value<bool> isAvailable,
+  Value<String?> modifierGroups,
+  Value<String?> station,
+  Value<String> course,
   Value<int> rowid,
 });
 
@@ -1296,6 +1427,16 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<bool> get isAvailable => $composableBuilder(
       column: $table.isAvailable, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get modifierGroups => $composableBuilder(
+      column: $table.modifierGroups,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get station => $composableBuilder(
+      column: $table.station, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get course => $composableBuilder(
+      column: $table.course, builder: (column) => ColumnFilters(column));
 }
 
 class $$ProductsTableOrderingComposer
@@ -1324,6 +1465,16 @@ class $$ProductsTableOrderingComposer
 
   ColumnOrderings<bool> get isAvailable => $composableBuilder(
       column: $table.isAvailable, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get modifierGroups => $composableBuilder(
+      column: $table.modifierGroups,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get station => $composableBuilder(
+      column: $table.station, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get course => $composableBuilder(
+      column: $table.course, builder: (column) => ColumnOrderings(column));
 }
 
 class $$ProductsTableAnnotationComposer
@@ -1352,6 +1503,15 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<bool> get isAvailable => $composableBuilder(
       column: $table.isAvailable, builder: (column) => column);
+
+  GeneratedColumn<String> get modifierGroups => $composableBuilder(
+      column: $table.modifierGroups, builder: (column) => column);
+
+  GeneratedColumn<String> get station =>
+      $composableBuilder(column: $table.station, builder: (column) => column);
+
+  GeneratedColumn<String> get course =>
+      $composableBuilder(column: $table.course, builder: (column) => column);
 }
 
 class $$ProductsTableTableManager extends RootTableManager<
@@ -1383,6 +1543,9 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> nameAr = const Value.absent(),
             Value<double> price = const Value.absent(),
             Value<bool> isAvailable = const Value.absent(),
+            Value<String?> modifierGroups = const Value.absent(),
+            Value<String?> station = const Value.absent(),
+            Value<String> course = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion(
@@ -1392,6 +1555,9 @@ class $$ProductsTableTableManager extends RootTableManager<
             nameAr: nameAr,
             price: price,
             isAvailable: isAvailable,
+            modifierGroups: modifierGroups,
+            station: station,
+            course: course,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -1401,6 +1567,9 @@ class $$ProductsTableTableManager extends RootTableManager<
             required String nameAr,
             required double price,
             Value<bool> isAvailable = const Value.absent(),
+            Value<String?> modifierGroups = const Value.absent(),
+            Value<String?> station = const Value.absent(),
+            Value<String> course = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion.insert(
@@ -1410,6 +1579,9 @@ class $$ProductsTableTableManager extends RootTableManager<
             nameAr: nameAr,
             price: price,
             isAvailable: isAvailable,
+            modifierGroups: modifierGroups,
+            station: station,
+            course: course,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

@@ -2,8 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../domain/entities/order.dart';
 import '../../../domain/entities/order_status.dart';
 import '../../../data/repositories/kitchen_repository_impl.dart';
-import '../../core/services/kitchen_socket_service.dart';
-import '../auth/auth_controller.dart';
+import '../../../core/services/kitchen_socket_service.dart';
 
 part 'kitchen_controller.g.dart';
 
@@ -26,7 +25,7 @@ class KitchenController extends _$KitchenController {
         await ref.read(kitchenRepositoryProvider).getKdsOrders(stationId);
     return result.fold(
       (failure) => throw Exception(failure.message),
-      (orders) => orders,
+      (orders) => List<Order>.from(orders),
     );
   }
 

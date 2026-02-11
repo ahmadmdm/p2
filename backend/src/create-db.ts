@@ -12,8 +12,10 @@ async function createDatabase() {
   try {
     await client.connect();
     console.log('Connected to postgres...');
-    
-    const res = await client.query("SELECT 1 FROM pg_database WHERE datname = 'pos_db'");
+
+    const res = await client.query(
+      "SELECT 1 FROM pg_database WHERE datname = 'pos_db'",
+    );
     if (res.rowCount === 0) {
       await client.query('CREATE DATABASE pos_db');
       console.log('Database pos_db created successfully.');

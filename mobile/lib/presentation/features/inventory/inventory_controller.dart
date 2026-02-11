@@ -1,10 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../domain/entities/supplier.dart';
-import '../../../../domain/entities/ingredient.dart';
-import '../../../../domain/entities/purchase_order.dart';
-import '../../../../domain/entities/warehouse.dart';
-import '../../../../domain/entities/inventory_log.dart';
-import '../../../../data/repositories/inventory_repository_impl.dart';
+import '../../../domain/entities/supplier.dart';
+import '../../../domain/entities/ingredient.dart';
+import '../../../domain/entities/purchase_order.dart';
+import '../../../domain/entities/warehouse.dart';
+import '../../../domain/entities/inventory_log.dart';
+import '../../../data/repositories/inventory_repository_impl.dart';
 
 part 'inventory_controller.g.dart';
 

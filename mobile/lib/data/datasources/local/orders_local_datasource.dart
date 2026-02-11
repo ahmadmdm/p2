@@ -1,19 +1,16 @@
 import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import 'database.dart';
 import '../../../domain/entities/order.dart' as domain;
 import '../../../domain/entities/order_item.dart' as domain;
 import '../../../domain/entities/order_status.dart';
+import '../../../domain/entities/order_type.dart';
 import '../../../domain/entities/product.dart' as domain;
 import '../../../domain/entities/modifier.dart';
 
 part 'orders_local_datasource.g.dart';
-
-@Riverpod(keepAlive: true)
-AppDatabase appDatabase(AppDatabaseRef ref) {
-  return AppDatabase();
-}
 
 @riverpod
 OrdersLocalDataSource ordersLocalDataSource(OrdersLocalDataSourceRef ref) {
@@ -22,13 +19,15 @@ OrdersLocalDataSource ordersLocalDataSource(OrdersLocalDataSourceRef ref) {
 
 class OrdersLocalDataSource {
   final AppDatabase _db;
+  final Uuid _uuid = const Uuid();
 
   OrdersLocalDataSource(this._db);
 
   Future<void> saveOrder(domain.Order order) async {
     await _db.transaction(() async {
-      await _db.into(_db.orders).insert(OrdersCompanion.insert(
+      await _db.into(_db.orders).insertOnConflictUpdate(OrdersCompanion.insert(
             id: order.id,
+            tableId: Value(order.tableNumber),
             status: order.status.name,
             totalAmount: order.totalAmount,
             taxAmount: Value(order.taxAmount),
@@ -37,12 +36,27 @@ class OrdersLocalDataSource {
             paymentMethod: Value(order.paymentMethod),
             paymentStatus: Value(order.paymentStatus),
             customerId: Value(order.customerId),
+            type: Value(order.type.name),
+            deliveryFee: Value(order.deliveryFee),
+            deliveryAddress: Value(order.deliveryAddress),
+            driverId: Value(order.driverId),
+            deliveryProvider: Value(order.deliveryProvider),
+            deliveryReferenceId: Value(order.deliveryReferenceId),
             isSynced: const Value(false),
           ));
 
+      // Replace existing items for this order to keep local snapshot consistent.
+      await (_db.delete(_db.orderItems)
+            ..where((t) => t.orderId.equals(order.id)))
+          .go();
+
       for (var item in order.items) {
-        await _db.into(_db.orderItems).insert(OrderItemsCompanion.insert(
-              id: item.id,
+        // Always assign a fresh local row id to avoid collisions from upstream ids.
+        final safeItemId = _uuid.v4();
+
+        await _db.into(_db.orderItems).insert(
+            OrderItemsCompanion.insert(
+              id: safeItemId,
               orderId: order.id,
               productId: item.product.id,
               quantity: item.quantity,
@@ -53,7 +67,8 @@ class OrdersLocalDataSource {
               modifiers: Value(item.modifiers.isNotEmpty
                   ? jsonEncode(item.modifiers.map((e) => e.toJson()).toList())
                   : null),
-            ));
+            ),
+            mode: InsertMode.insertOrReplace);
       }
     });
   }
@@ -118,10 +133,17 @@ class OrdersLocalDataSource {
 
       orders.add(domain.Order(
         id: row.id,
+        tableNumber: row.tableId,
         status: parseOrderStatus(row.status),
+        type: parseOrderType(row.type),
         paymentMethod: row.paymentMethod,
         paymentStatus: row.paymentStatus,
         customerId: row.customerId,
+        deliveryFee: row.deliveryFee,
+        deliveryAddress: row.deliveryAddress,
+        driverId: row.driverId,
+        deliveryProvider: row.deliveryProvider,
+        deliveryReferenceId: row.deliveryReferenceId,
         totalAmount: row.totalAmount,
         taxAmount: row.taxAmount,
         discountAmount: row.discountAmount,

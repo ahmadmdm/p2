@@ -1,7 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../domain/entities/shift.dart';
-import '../../domain/repositories/shifts_repository.dart';
-import '../../data/repositories/shifts_repository_impl.dart';
+import '../../../domain/entities/shift.dart';
+import '../../../data/repositories/shifts_repository_impl.dart';
 import '../auth/auth_controller.dart';
 
 part 'shifts_controller.g.dart';

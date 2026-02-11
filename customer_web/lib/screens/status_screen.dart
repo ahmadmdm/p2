@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:customer_web/l10n/app_localizations.dart';
 import '../providers/order_provider.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
@@ -16,25 +18,41 @@ class StatusScreen extends ConsumerStatefulWidget {
 }
 
 class _StatusScreenState extends ConsumerState<StatusScreen> {
+  StreamSubscription<dynamic>? _orderStatusSubscription;
+
   @override
   void initState() {
     super.initState();
     // Initialize socket connection and join order room
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final socket = ref.read(socketServiceProvider);
-      socket.joinOrder(widget.orderId);
-      socket.onOrderStatusUpdated((data) {
+      await socket.joinOrder(widget.orderId);
+      _orderStatusSubscription = socket.onOrderStatusUpdated((data) {
+        final updatedOrderId = (data is Map) ? data['id']?.toString() : null;
+        if (updatedOrderId != null && updatedOrderId != widget.orderId) {
+          return;
+        }
         if (mounted) {
           // Invalidate provider to trigger refresh
           ref.invalidate(orderStatusProvider(widget.orderId));
 
           // Optionally show a snackbar
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Order status updated: ${data['status']}')),
+            SnackBar(
+              content: Text(
+                'Order status updated: ${(data is Map) ? data['status'] : ''}',
+              ),
+            ),
           );
         }
       });
     });
+  }
+
+  @override
+  void dispose() {
+    _orderStatusSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -191,11 +209,7 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                                   .requestBill(token);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      l10n.billRequested,
-                                    ),
-                                  ),
+                                  SnackBar(content: Text(l10n.billRequested)),
                                 );
                               }
                             }

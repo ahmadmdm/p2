@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Supplier } from '../suppliers/supplier.entity';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
 
@@ -39,7 +47,9 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   notes: string;
 
-  @OneToMany(() => PurchaseOrderItem, (item) => item.purchaseOrder, { cascade: true })
+  @OneToMany(() => PurchaseOrderItem, (item) => item.purchaseOrder, {
+    cascade: true,
+  })
   items: PurchaseOrderItem[];
 
   @CreateDateColumn()

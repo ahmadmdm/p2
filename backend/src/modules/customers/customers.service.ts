@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import { Customer } from './customer.entity';
-import { LoyaltyTransaction, LoyaltyTransactionType } from './loyalty-transaction.entity';
+import {
+  LoyaltyTransaction,
+  LoyaltyTransactionType,
+} from './loyalty-transaction.entity';
 
 @Injectable()
 export class CustomersService {
@@ -17,7 +20,10 @@ export class CustomersService {
     if (query) {
       return this.customersRepository
         .createQueryBuilder('customer')
-        .where('customer.name LIKE :query OR customer.phoneNumber LIKE :query', { query: `%${query}%` })
+        .where(
+          'customer.name LIKE :query OR customer.phoneNumber LIKE :query',
+          { query: `%${query}%` },
+        )
         .getMany();
     }
     return this.customersRepository.find();
@@ -41,16 +47,26 @@ export class CustomersService {
     return this.findOne(id);
   }
 
-  async addPoints(id: string, points: number, type: LoyaltyTransactionType = LoyaltyTransactionType.EARN, orderId?: string, manager?: EntityManager) {
+  async addPoints(
+    id: string,
+    points: number,
+    type: LoyaltyTransactionType = LoyaltyTransactionType.EARN,
+    orderId?: string,
+    manager?: EntityManager,
+  ) {
     if (points === 0) return;
 
-    const repo = manager ? manager.getRepository(Customer) : this.customersRepository;
-    const transactionRepo = manager ? manager.getRepository(LoyaltyTransaction) : this.loyaltyTransactionRepository;
+    const repo = manager
+      ? manager.getRepository(Customer)
+      : this.customersRepository;
+    const transactionRepo = manager
+      ? manager.getRepository(LoyaltyTransaction)
+      : this.loyaltyTransactionRepository;
 
     const customer = await repo.findOne({ where: { id } });
     if (customer) {
       customer.loyaltyPoints += points;
-      
+
       // Update Tier
       if (customer.loyaltyPoints >= 5000) customer.tier = 'PLATINUM';
       else if (customer.loyaltyPoints >= 2000) customer.tier = 'GOLD';

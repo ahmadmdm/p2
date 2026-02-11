@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Coupon, CouponType } from './coupon.entity';
@@ -38,7 +42,9 @@ export class CouponsService {
     }
 
     if (orderTotal < coupon.minOrderAmount) {
-      throw new BadRequestException(`Minimum order amount is ${coupon.minOrderAmount}`);
+      throw new BadRequestException(
+        `Minimum order amount is ${coupon.minOrderAmount}`,
+      );
     }
 
     return coupon;

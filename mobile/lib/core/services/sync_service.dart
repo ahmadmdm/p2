@@ -7,7 +7,8 @@ import '../../presentation/features/auth/auth_controller.dart';
 
 import '../../data/repositories/customers_repository_impl.dart';
 import '../../data/repositories/users_repository_impl.dart';
-import '../../domain/repositories/inventory_repository.dart';
+import '../../data/repositories/inventory_repository_impl.dart';
+import '../../data/repositories/catalog_repository_impl.dart';
 
 part 'sync_service.g.dart';
 
@@ -22,7 +23,22 @@ class SyncService {
   bool _isSyncing = false;
 
   SyncService(this._ref) {
+    _listenForLoginAndSync();
     _startSyncTimer();
+  }
+
+  void _listenForLoginAndSync() {
+    _ref.listen(authControllerProvider, (previous, next) {
+      final oldToken = previous?.valueOrNull?.accessToken;
+      final newToken = next.valueOrNull?.accessToken;
+
+      final wasLoggedIn = oldToken != null && oldToken.isNotEmpty;
+      final isLoggedIn = newToken != null && newToken.isNotEmpty;
+
+      if (!wasLoggedIn && isLoggedIn) {
+        unawaited(syncAll());
+      }
+    });
   }
 
   void _startSyncTimer() {
@@ -37,7 +53,8 @@ class SyncService {
     final authState = _ref.read(authControllerProvider);
     final user = authState.value;
 
-    if (user == null || user.accessToken.isEmpty) {
+    final token = user?.accessToken;
+    if (token == null || token.isEmpty) {
       return; // Cannot sync if not logged in
     }
 
@@ -45,26 +62,29 @@ class SyncService {
     try {
       print('Starting sync...');
 
+      // Sync Catalog first so cashier can see categories/products immediately
+      await _ref.read(catalogRepositoryProvider).syncCatalog(token);
+
       // Sync Orders
       await _ref
           .read(ordersRepositoryProvider)
-          .syncPendingOrders(user.accessToken);
+          .syncPendingOrders(token);
 
       // Sync Shifts
-      await _ref.read(shiftsRepositoryProvider).syncShifts(user.accessToken);
+      await _ref.read(shiftsRepositoryProvider).syncShifts(token);
 
       // Sync Customers
       await _ref
           .read(customersRepositoryProvider)
-          .syncCustomers(user.accessToken);
+          .syncCustomers(token);
 
       // Sync Users
-      await _ref.read(usersRepositoryProvider).syncUsers(user.accessToken);
+      await _ref.read(usersRepositoryProvider).syncUsers(token);
 
       // Sync Inventory (Suppliers & Ingredients & Recipes)
       final inventoryRepo = _ref.read(inventoryRepositoryProvider);
-      await inventoryRepo.syncPendingPurchaseOrders(user.accessToken);
-      await inventoryRepo.syncInventory(user.accessToken);
+      await inventoryRepo.syncPendingPurchaseOrders(token);
+      await inventoryRepo.syncInventory(token);
 
       print('Sync completed.');
     } catch (e) {

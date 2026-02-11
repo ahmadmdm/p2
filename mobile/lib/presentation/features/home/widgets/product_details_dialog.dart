@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import '../../../domain/entities/product.dart';
-import '../../../domain/entities/modifier.dart';
+import 'package:pos_mobile/l10n/app_localizations.dart';
+import '../../../../domain/entities/product.dart';
+import '../../../../domain/entities/modifier.dart';
 
 class ProductDetailsDialog extends StatefulWidget {
   final Product product;
@@ -213,3 +213,4 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
     );
   }
 }
+

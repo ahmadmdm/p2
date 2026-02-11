@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ShiftsService } from './shifts.service';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { CloseShiftDto } from './dto/close-shift.dto';
@@ -21,7 +29,10 @@ export class ShiftsController {
   }
 
   @Post('transaction')
-  async addCashTransaction(@Request() req: any, @Body() dto: CreateCashTransactionDto) {
+  async addCashTransaction(
+    @Request() req: any,
+    @Body() dto: CreateCashTransactionDto,
+  ) {
     return this.shiftsService.addCashTransaction(req.user.id, dto);
   }
 

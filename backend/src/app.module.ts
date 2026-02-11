@@ -26,10 +26,12 @@ import { DeliveryModule } from './modules/delivery/delivery.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -59,7 +61,6 @@ import { DeliveryModule } from './modules/delivery/delivery.module';
     PublicApiModule,
     KitchenModule,
     DeliveryModule,
-    CouponsModule,
   ],
   controllers: [AppController],
   providers: [
