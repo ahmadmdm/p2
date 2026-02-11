@@ -20,18 +20,18 @@ export default function Cart() {
     setPlacingOrder(true);
     try {
       const orderData = {
-        tableId, 
-        paymentMethod: 'ONLINE',
-        customerId: customer?.id,
-        items: items.map(item => ({
+        token: tableId,
+        items: items.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
           notes: item.notes || '',
-          modifiers: item.modifiers || [],
-        }))
+          modifiers: (item.modifiers || []).map((modifier) => ({
+            id: modifier.id,
+          })),
+        })),
       };
 
-      const res = await api.post('/orders', orderData);
+      const res = await api.post('/public-api/orders', orderData);
       clearCart();
       navigate(`/t/${tableId}/order/${res.data.id}`);
     } catch (err) {

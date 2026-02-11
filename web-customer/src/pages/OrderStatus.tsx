@@ -11,11 +11,13 @@ export default function OrderStatus() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId || !tableId) return;
 
     const fetchOrder = async () => {
       try {
-        const res = await api.get<Order>(`/orders/${orderId}`);
+        const res = await api.get<Order>(`/public-api/orders/${orderId}`, {
+          params: { t: tableId },
+        });
         setOrder(res.data);
       } catch (err) {
         console.error('Failed to fetch order', err);
@@ -29,7 +31,7 @@ export default function OrderStatus() {
     // Poll for updates every 5 seconds
     const interval = setInterval(fetchOrder, 5000);
     return () => clearInterval(interval);
-  }, [orderId]);
+  }, [orderId, tableId]);
 
   if (loading) return <div className="flex justify-center items-center h-screen">Loading status...</div>;
   if (!order) return <div className="flex justify-center items-center h-screen">Order not found</div>;

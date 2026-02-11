@@ -21,12 +21,12 @@ export default function Landing() {
           <QrCode className="w-12 h-12 text-blue-600" />
         </div>
         <h1 className="text-2xl font-bold mb-2">Welcome</h1>
-        <p className="text-gray-500 mb-6">Scan the QR code on your table or enter the table number below.</p>
+        <p className="text-gray-500 mb-6">Scan the QR code on your table or enter the table token below.</p>
         
         <form onSubmit={handleScan} className="space-y-4">
           <input
             type="text"
-            placeholder="Enter Table ID (e.g., T1)"
+            placeholder="Enter table token from QR"
             value={tableId}
             onChange={(e) => setTableId(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"

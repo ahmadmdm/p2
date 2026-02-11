@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import '../../../core/services/printing_service.dart';
 import '../../../domain/entities/order.dart';
 import '../../../domain/entities/order_status.dart';
 import '../../../domain/entities/refund.dart';
@@ -54,6 +55,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
         order.status != OrderStatus.REFUNDED &&
         order.status != OrderStatus.COMPLETED &&
         order.status != OrderStatus.DELIVERED;
+    final canPrintReceipt = order.paymentStatus == 'PAID';
     // Usually void is for active orders. If completed, use refund.
 
     return Scaffold(
@@ -125,6 +127,12 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
+                if (canPrintReceipt)
+                  ElevatedButton.icon(
+                    onPressed: _printReceipt,
+                    icon: const Icon(Icons.print),
+                    label: Text(AppLocalizations.of(context)!.print),
+                  ),
                 if (canRefund)
                   ElevatedButton.icon(
                     onPressed: _showRefundDialog,
@@ -147,6 +155,23 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _printReceipt() async {
+    try {
+      await ref.read(printingServiceProvider).printOrderReceipt(widget.order);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.success)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -224,18 +249,18 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(AppLocalizations.of(context)!.voidOrder),
+        builder: (dialogContext, setState) => AlertDialog(
+          title: Text(AppLocalizations.of(dialogContext)!.voidOrder),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: _voidReasonController,
                 decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context)!.reason),
+                    labelText: AppLocalizations.of(dialogContext)!.reason),
               ),
               SwitchListTile(
-                title: Text(AppLocalizations.of(context)!.returnStock),
+                title: Text(AppLocalizations.of(dialogContext)!.returnStock),
                 value: _returnStock,
                 onChanged: (val) => setState(() => _returnStock = val),
               ),
@@ -244,7 +269,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text(AppLocalizations.of(context)!.cancel)),
+                child: Text(AppLocalizations.of(dialogContext)!.cancel)),
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(ctx);
@@ -253,22 +278,20 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                       .read(ordersActionsControllerProvider.notifier)
                       .voidOrder(widget.order.id, _voidReasonController.text,
                           _returnStock);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content:
-                            Text(AppLocalizations.of(context)!.orderVoided)));
-                    Navigator.pop(context); // Go back to list
-                  }
+                  if (!mounted) return;
+                  final l10n = AppLocalizations.of(context)!;
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text(l10n.orderVoided)));
+                  Navigator.pop(context); // Go back to list
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(
-                            '${AppLocalizations.of(context)!.error}: $e')));
-                  }
+                  if (!mounted) return;
+                  final l10n = AppLocalizations.of(context)!;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${l10n.error}: $e')));
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: Text(AppLocalizations.of(context)!.voidAction),
+              child: Text(AppLocalizations.of(dialogContext)!.voidAction),
             ),
           ],
         ),
@@ -294,4 +317,3 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
     }
   }
 }
-

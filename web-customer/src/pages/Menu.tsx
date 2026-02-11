@@ -13,6 +13,7 @@ export default function Menu() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('');
+  const [tableNumber, setTableNumber] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
@@ -21,10 +22,18 @@ export default function Menu() {
     }
     const fetchMenu = async () => {
       try {
-        const res = await api.get<Category[]>('/catalog/public/categories');
-        setCategories(res.data);
-        if (res.data.length > 0) {
-          setActiveCategory(res.data[0].id);
+        const res = await api.get<{
+          tableNumber: string;
+          categories: Category[];
+        }>('/public-api/menu', {
+          params: { t: tableId },
+        });
+
+        const fetchedCategories = res.data.categories ?? [];
+        setTableNumber(res.data.tableNumber ?? '');
+        setCategories(fetchedCategories);
+        if (fetchedCategories.length > 0) {
+          setActiveCategory(fetchedCategories[0].id);
         }
       } catch (err) {
         console.error('Failed to fetch menu', err);
@@ -59,7 +68,9 @@ export default function Menu() {
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="px-4 py-3 flex justify-between items-center">
           <div>
-            <h1 className="font-bold text-lg">Table {tableId}</h1>
+            <h1 className="font-bold text-lg">
+              Table {tableNumber || tableId}
+            </h1>
             <p className="text-xs text-gray-500">Welcome back</p>
           </div>
           <button 

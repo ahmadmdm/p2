@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import { Ingredient } from './ingredient.entity';
@@ -267,7 +263,6 @@ export class InventoryService {
     items: { productId: string; quantity: number; modifierIds: string[] }[],
     manager: EntityManager,
   ): Promise<void> {
-    const inventoryRepo = manager.getRepository(InventoryItem);
     const recipesRepo = manager.getRepository(RecipeItem);
 
     for (const item of items) {

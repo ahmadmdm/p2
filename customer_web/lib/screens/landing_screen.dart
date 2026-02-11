@@ -13,6 +13,8 @@ class LandingScreen extends ConsumerStatefulWidget {
 }
 
 class _LandingScreenState extends ConsumerState<LandingScreen> {
+  String? _errorMessage;
+
   @override
   void initState() {
     super.initState();
@@ -23,40 +25,47 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 
   Future<void> _checkToken() async {
-    if (widget.token != null && widget.token!.isNotEmpty) {
-      ref.read(tableTokenProvider.notifier).setToken(widget.token!);
+    final token = widget.token?.trim();
+    if (token == null || token.isEmpty) {
+      return;
+    }
 
-      // Reset active order ID first
+    try {
+      // Validate token up-front to avoid navigating to menu with invalid QR.
+      await ref.read(apiServiceProvider.notifier).getMenu(token);
+      ref.read(tableTokenProvider.notifier).setToken(token);
+
       ref.read(activeOrderIdProvider.notifier).setId(null);
-
-      // Check for active order
-      try {
-        final activeOrder = await ref
-            .read(apiServiceProvider.notifier)
-            .getActiveOrder(widget.token!);
-        if (activeOrder != null) {
-          ref.read(activeOrderIdProvider.notifier).setId(activeOrder['id']);
-        }
-      } catch (e) {
-        // Ignore error, just proceed to menu
-        debugPrint('Error fetching active order: $e');
+      final activeOrder = await ref
+          .read(apiServiceProvider.notifier)
+          .getActiveOrder(token);
+      if (activeOrder != null) {
+        ref.read(activeOrderIdProvider.notifier).setId(activeOrder['id']);
       }
 
       if (mounted) {
         context.go('/menu');
       }
-    } else {
-      // Show error or manual entry
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Invalid table QR code. Please scan again.';
+      });
+      debugPrint('Error validating token: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final hasToken = widget.token?.trim().isNotEmpty ?? false;
+
     return Scaffold(
       body: Center(
-        child: widget.token == null
+        child: !hasToken
             ? const Text('Scan QR Code to order')
-            : const CircularProgressIndicator(),
+            : _errorMessage != null
+                ? Text(_errorMessage!)
+                : const CircularProgressIndicator(),
       ),
     );
   }

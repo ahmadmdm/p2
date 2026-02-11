@@ -9,6 +9,7 @@ import '../inventory/inventory_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../shifts/shift_screen.dart';
 import '../settings/settings_screen.dart';
+import '../settings/settings_controller.dart';
 import 'home_providers.dart';
 import 'cart_controller.dart';
 import 'cart_state.dart';
@@ -744,25 +745,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           .read(ordersRepositoryProvider)
           .createOrder(order, token: token);
 
-      // Print Receipt
-      try {
-        await ref.read(printingServiceProvider).printOrderReceipt(createdOrder);
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('${AppLocalizations.of(context)!.error}: $e')));
+      final settings = await ref.read(settingsControllerProvider.future);
+      final autoPrintReceipt = settings['autoPrintReceipt'] as bool? ?? true;
+      final autoPrintKitchen = settings['autoPrintKitchen'] as bool? ?? true;
+
+      if (autoPrintReceipt) {
+        try {
+          await ref
+              .read(printingServiceProvider)
+              .printOrderReceipt(createdOrder);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Receipt print failed: $e'),
+              ),
+            );
+          }
         }
       }
 
-      // Print Kitchen Ticket
-      try {
-        await ref
-            .read(printingServiceProvider)
-            .printKitchenTicket(createdOrder);
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('${AppLocalizations.of(context)!.error}: $e')));
+      if (autoPrintKitchen) {
+        try {
+          await ref
+              .read(printingServiceProvider)
+              .printKitchenTicket(createdOrder);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Kitchen ticket print failed: $e'),
+              ),
+            );
+          }
         }
       }
 

@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Coupon, CouponType } from './coupon.entity';
+import { Coupon } from './coupon.entity';
 
 @Injectable()
 export class CouponsService {

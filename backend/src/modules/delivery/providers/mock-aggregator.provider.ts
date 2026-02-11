@@ -26,6 +26,7 @@ export class MockAggregatorProvider implements DeliveryProvider {
   }
 
   async getDeliveryStatus(referenceId: string): Promise<any> {
+    this.logger.debug(`Checking mock status for delivery ${referenceId}`);
     return {
       status: 'driver_assigned',
       driver: { name: 'John Doe', phone: '555-0123' },

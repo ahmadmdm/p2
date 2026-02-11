@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
@@ -15,11 +11,18 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  private stripPassword(user: User): Omit<User, 'passwordHash'> {
+    const { passwordHash, ...safeUser } = user as User & {
+      passwordHash?: string;
+    };
+    void passwordHash;
+    return safeUser;
+  }
+
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findOneByEmail(email);
     if (user && (await bcrypt.compare(pass, user.passwordHash))) {
-      const { passwordHash, ...result } = user;
-      return result;
+      return this.stripPassword(user);
     }
     return null;
   }
@@ -51,7 +54,6 @@ export class AuthService {
       passwordHash,
     });
 
-    const { passwordHash: _, ...result } = newUser;
-    return result;
+    return this.stripPassword(newUser);
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, LessThanOrEqual, Raw } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { Order, PaymentStatus } from '../orders/order.entity';
 import { OrderItem } from '../orders/order-item.entity';
 import { InventoryItem } from '../inventory/inventory-item.entity';
@@ -91,7 +91,7 @@ export class ReportsService {
 
       let totalSales = 0;
 
-      orders.forEach((order, index) => {
+      orders.forEach((order) => {
         doc
           .fontSize(10)
           .text(
@@ -164,16 +164,18 @@ export class ReportsService {
   }
 
   async getSalesByCategory() {
-    return this.orderItemsRepo
-      .createQueryBuilder('item')
-      .leftJoin('item.product', 'product')
-      .leftJoin('product.category', 'category')
-      .select('category.name', 'categoryName')
-      .addSelect('SUM(item.price * item.quantity)', 'totalSales')
-      .groupBy('category.id')
-      .addGroupBy('category.name')
-      // Avoid postgres alias-case issues by ordering on the aggregate expression.
-      .orderBy('SUM(item.price * item.quantity)', 'DESC')
-      .getRawMany();
+    return (
+      this.orderItemsRepo
+        .createQueryBuilder('item')
+        .leftJoin('item.product', 'product')
+        .leftJoin('product.category', 'category')
+        .select('category.name', 'categoryName')
+        .addSelect('SUM(item.price * item.quantity)', 'totalSales')
+        .groupBy('category.id')
+        .addGroupBy('category.name')
+        // Avoid postgres alias-case issues by ordering on the aggregate expression.
+        .orderBy('SUM(item.price * item.quantity)', 'DESC')
+        .getRawMany()
+    );
   }
 }

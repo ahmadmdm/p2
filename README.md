@@ -50,6 +50,19 @@ flutter pub get
 flutter run -d chrome
 ```
 
+After launch, open the app with a table token from the QR code, for example:
+
+```text
+http://localhost:8081/?t=<table_qr_token>
+```
+
+To generate demo menu/tables/users for local testing:
+
+```bash
+cd backend
+npm run seed
+```
+
 ## Architecture
 
 *   **Backend**: Modular Monolith (NestJS), TypeORM, PostgreSQL.

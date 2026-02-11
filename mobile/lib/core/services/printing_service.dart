@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,7 +12,7 @@ import '../../presentation/features/settings/settings_controller.dart';
 part 'printing_service.g.dart';
 
 @riverpod
-PrintingService printingService(PrintingServiceRef ref) {
+PrintingService printingService(Ref ref) {
   return PrintingService(ref);
 }
 
@@ -20,15 +21,41 @@ class PrintingService {
 
   PrintingService(this._ref);
 
+  int _normalizePort(int? port) {
+    if (port == null || port <= 0 || port > 65535) return 9100;
+    return port;
+  }
+
+  int _normalizeRetryCount(int? value) {
+    if (value == null || value < 1) return 1;
+    if (value > 5) return 5;
+    return value;
+  }
+
+  int _normalizeTimeoutMs(int? value) {
+    if (value == null || value < 1000) return 5000;
+    if (value > 30000) return 30000;
+    return value;
+  }
+
+  int _normalizeCopies(int? value) {
+    if (value == null || value < 1) return 1;
+    if (value > 3) return 3;
+    return value;
+  }
+
   Future<void> printOrderReceipt(Order order) async {
     final settings = await _ref.read(settingsControllerProvider.future);
-    final ip = settings['printerIp'] as String?;
-    final port = settings['printerPort'] as int? ?? 9100;
+    final ip = (settings['printerIp'] as String?)?.trim() ?? '';
+    final port = _normalizePort(settings['printerPort'] as int?);
     final paperSizeStr = settings['paperSize'] as String? ?? '80mm';
+    final retryCount =
+        _normalizeRetryCount(settings['printerRetryCount'] as int?);
+    final timeoutMs = _normalizeTimeoutMs(settings['printerTimeoutMs'] as int?);
+    final copies = _normalizeCopies(settings['receiptCopies'] as int?);
 
-    if (ip == null || ip.isEmpty) {
-      print('Printer IP not configured');
-      return;
+    if (ip.isEmpty) {
+      throw Exception('Printer IP is not configured');
     }
 
     final profile = await CapabilityProfile.load();
@@ -122,17 +149,25 @@ class PrintingService {
     bytes += generator.feed(1);
     bytes += generator.text('Payment: ${order.paymentMethod}',
         styles: const PosStyles(align: PosAlign.center));
-    
+
     // Loyalty Points (if available in order entity, skipping for now as it's not in mobile entity yet)
-    
+
     bytes += generator.feed(2);
     bytes += generator.text('Thank you!',
         styles: const PosStyles(align: PosAlign.center, bold: true));
     bytes += generator.feed(3);
     bytes += generator.cut();
 
-    // Send to printer
-    await _sendToNetworkPrinter(ip, port, bytes);
+    // Send requested number of copies to cashier printer.
+    for (var i = 0; i < copies; i++) {
+      await _sendToNetworkPrinter(
+        ip,
+        port,
+        bytes,
+        retryCount: retryCount,
+        timeoutMs: timeoutMs,
+      );
+    }
   }
 
   Future<void> printStationTickets(Order order, {String? onlyCourse}) async {
@@ -155,28 +190,41 @@ class PrintingService {
       }
     }
 
+    final settings = await _ref.read(settingsControllerProvider.future);
+    final retryCount =
+        _normalizeRetryCount(settings['printerRetryCount'] as int?);
+    final timeoutMs = _normalizeTimeoutMs(settings['printerTimeoutMs'] as int?);
+
     // Print for each station
     for (final stationId in itemsByStation.keys) {
       final station = stations[stationId]!;
       final items = itemsByStation[stationId]!;
-      final printerIp = station.printerIp;
-      final printerPort = station.printerPort;
+      final printerIp = station.printerIp?.trim();
+      final printerPort = _normalizePort(station.printerPort);
 
       if (printerIp != null && printerIp.isNotEmpty) {
         try {
           await _printToStation(
-              printerIp, printerPort, station.name, order, items);
+              printerIp, printerPort, station.name, order, items,
+              retryCount: retryCount, timeoutMs: timeoutMs);
         } catch (e) {
-          print('Failed to print to station ${station.name}: $e');
+          debugPrint('Failed to print to station ${station.name}: $e');
         }
       } else {
-         print('No printer IP for station ${station.name}');
+        debugPrint('No printer IP configured for station ${station.name}');
       }
     }
   }
 
-  Future<void> _printToStation(String ip, int port, String stationName,
-      Order order, List<OrderItem> items) async {
+  Future<void> _printToStation(
+    String ip,
+    int port,
+    String stationName,
+    Order order,
+    List<OrderItem> items, {
+    required int retryCount,
+    required int timeoutMs,
+  }) async {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm80, profile);
     List<int> bytes = [];
@@ -227,31 +275,114 @@ class PrintingService {
     bytes += generator.feed(3);
     bytes += generator.cut();
 
-    await _sendToNetworkPrinter(ip, port, bytes);
+    await _sendToNetworkPrinter(
+      ip,
+      port,
+      bytes,
+      retryCount: retryCount,
+      timeoutMs: timeoutMs,
+    );
   }
 
   Future<void> _sendToNetworkPrinter(
-      String ip, int port, List<int> bytes) async {
-    try {
-      final socket =
-          await Socket.connect(ip, port, timeout: const Duration(seconds: 5));
-      socket.add(bytes);
-      await socket.flush();
-      socket.destroy();
-    } catch (e) {
-      print('Error printing to $ip:$port : $e');
-      throw Exception('Could not connect to printer at $ip:$port');
+    String ip,
+    int port,
+    List<int> bytes, {
+    required int retryCount,
+    required int timeoutMs,
+  }) async {
+    Object? lastError;
+    for (var attempt = 1; attempt <= retryCount; attempt++) {
+      Socket? socket;
+      try {
+        socket = await Socket.connect(
+          ip,
+          port,
+          timeout: Duration(milliseconds: timeoutMs),
+        );
+        socket.add(bytes);
+        await socket.flush();
+        await socket.close();
+        return;
+      } catch (e) {
+        lastError = e;
+        debugPrint(
+          'Print attempt $attempt/$retryCount failed for $ip:$port: $e',
+        );
+      } finally {
+        socket?.destroy();
+      }
     }
+    throw Exception(
+      'Could not connect to printer at $ip:$port. Last error: $lastError',
+    );
   }
-  
-  Future<bool> testPrinter(String ip, int port) async {
-     try {
-        final socket = await Socket.connect(ip, port, timeout: const Duration(seconds: 3));
-        socket.destroy();
-        return true;
-     } catch (e) {
-        return false;
-     }
+
+  Future<void> printTestReceipt({
+    required String ip,
+    required int port,
+    required String paperSize,
+    int retryCount = 1,
+    int timeoutMs = 5000,
+  }) async {
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(
+      paperSize == '58mm' ? PaperSize.mm58 : PaperSize.mm80,
+      profile,
+    );
+
+    List<int> bytes = [];
+    final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    bytes += generator.text(
+      'PRINTER TEST',
+      styles: const PosStyles(
+        align: PosAlign.center,
+        bold: true,
+        height: PosTextSize.size2,
+        width: PosTextSize.size2,
+      ),
+    );
+    bytes += generator.feed(1);
+    bytes += generator.text('Connection to printer is successful.',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('Time: $now',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.hr();
+    bytes += generator.text('Sample line: 1 x Espresso      12.00');
+    bytes += generator.text('Sample line: 2 x Latte         24.00');
+    bytes += generator.hr();
+    bytes += generator.text('TOTAL: 36.00',
+        styles: const PosStyles(align: PosAlign.right, bold: true));
+    bytes += generator.feed(3);
+    bytes += generator.cut();
+
+    await _sendToNetworkPrinter(
+      ip.trim(),
+      _normalizePort(port),
+      bytes,
+      retryCount: _normalizeRetryCount(retryCount),
+      timeoutMs: _normalizeTimeoutMs(timeoutMs),
+    );
+  }
+
+  Future<bool> testPrinter(
+    String ip,
+    int port, {
+    int timeoutMs = 3000,
+  }) async {
+    Socket? socket;
+    try {
+      socket = await Socket.connect(
+        ip.trim(),
+        _normalizePort(port),
+        timeout: Duration(milliseconds: _normalizeTimeoutMs(timeoutMs)),
+      );
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      socket?.destroy();
+    }
   }
 
   Future<void> printKitchenTicket(Order order, {String? onlyCourse}) async {
