@@ -1,0 +1,27 @@
+# General
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Node.js / NestJS
+node_modules/
+dist/
+coverage/
+npm-debug.log
+yarn-error.log
+.env
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+android/local.properties
+.gradle/
+*.iml

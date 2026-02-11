@@ -1,0 +1,612 @@
+{
+  "appName": "POS System",
+  "login": "Login",
+  "username": "Username",
+  "password": "Password",
+  "loginButton": "Login",
+  "settings": "Settings",
+  "language": "Language",
+  "english": "English",
+  "arabic": "Arabic",
+  "printerSettings": "Printer Settings",
+  "printerIp": "Printer IP Address",
+  "printerPort": "Printer Port",
+  "paperSize": "Paper Size",
+  "saveSettings": "Save Settings",
+  "syncNow": "Sync Now",
+  "dataSync": "Data Sync",
+  "dashboard": "Dashboard",
+  "orders": "Orders",
+  "inventory": "Inventory",
+  "reports": "Reports",
+  "customers": "Customers",
+  "kitchen": "Kitchen",
+  "floorPlan": "Floor Plan",
+  "kitchenDisplay": "Kitchen Display",
+  "shifts": "Shifts",
+  "myDeliveries": "My Deliveries",
+  "deliveryOrders": "Delivery Orders",
+  "refunds": "Refunds",
+  "users": "Users",
+  "categories": "Categories",
+  "orderHistory": "Order History",
+  "delivery": "Delivery",
+  "workHistory": "Work History",
+  "currentOrder": "Current Order",
+  "customer": "Customer",
+  "guest": "Guest",
+  "select": "Select",
+  "subtotal": "Subtotal",
+  "discount": "Discount",
+  "tax": "Tax",
+  "clearCart": "Clear Cart",
+  "approveRefunds": "Approve Refunds",
+  "enterTableNumber": "Enter Table Number",
+  "tableNumberPlaceholder": "Table # or \"TakeAway\"",
+  "next": "Next",
+  "selectPaymentMethod": "Select Payment Method",
+  "cash": "Cash",
+  "card": "Card",
+  "payLater": "Pay Later",
+  "loyaltyPoints": "Loyalty Points",
+  "charge": "Charge",
+  "save": "Save",
+  "notes": "Notes",
+  "itemDiscount": "Item Discount",
+  "itemTax": "Item Tax",
+  "searchCustomerHint": "Search by name or phone",
+  "noCustomersFound": "No customers found",
+  "newCustomer": "New Customer",
+  "name": "Name",
+  "phoneNumber": "Phone Number",
+  "pleaseFillAllFields": "Please fill all fields",
+  "customerCreated": "Customer created",
+  "errorCreatingCustomer": "Error creating customer",
+  "set": "Set",
+  "amount": "Amount",
+  "loyaltyHistory": "Loyalty History",
+  "noHistoryFound": "No history found",
+  "close": "Close",
+  "create": "Create",
+  "noOrdersFound": "No orders found",
+  "status": "Status",
+  "sync": "Sync",
+  "syncing": "Syncing...",
+  "syncSuccess": "Sync Completed Successfully",
+  "syncFailed": "Sync Failed",
+  "notAuthenticated": "Not authenticated",
+  "suppliers": "Suppliers",
+  "ingredients": "Ingredients",
+  "purchaseOrders": "Purchase Orders",
+  "modifierRecipes": "Modifier Recipes",
+  "logs": "Logs",
+  "inventoryAndPurchasing": "Inventory & Purchasing",
+  "syncInventory": "Sync Inventory",
+  "reportsAndAnalytics": "Reports & Analytics",
+  "dailySales": "Daily Sales",
+  "salesCount": "Count: {count} orders",
+  "@salesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lowStockAlerts": "Low Stock Alerts",
+  "noLowStockAlerts": "No low stock alerts.",
+  "stockLevel": "Stock: {stock} {unit} (Min: {min})",
+  "@stockLevel": {
+    "placeholders": {
+      "stock": {
+        "type": "double",
+        "format": "decimalPattern"
+      },
+      "unit": {
+        "type": "String"
+      },
+      "min": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "topProducts": "Top Products",
+  "noDataAvailable": "No data available.",
+  "itemsSold": "{count} sold",
+  "@itemsSold": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "salesByCategory": "Sales by Category",
+  "uncategorized": "Uncategorized",
+  "kitchenDisplaySystem": "Kitchen Display System",
+  "allStations": "All Stations",
+  "pending": "Pending",
+  "preparing": "Preparing",
+  "ready": "Ready",
+  "served": "Served",
+  "tableNumber": "Table {number}",
+  "@tableNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "note": "Note: {note}",
+  "@note": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "print": "Print",
+  "moveTo": "Move to {status}",
+  "@moveTo": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "floorPlan": "Floor Plan",
+  "editTable": "Edit Table",
+  "tableNumberInput": "Table Number",
+  "shape": "Shape",
+  "rectangle": "Rectangle",
+  "circle": "Circle",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "save": "Save",
+  "loginSuccess": "Login Success!",
+  "enterEmail": "Please enter email",
+  "enterPassword": "Please enter password",
+  "customersAndLoyalty": "Customers & Loyalty",
+  "noCustomersFound": "No customers found",
+  "pointsTier": "{points} Points - {tier} Tier",
+  "@pointsTier": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      },
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "addCustomer": "Add Customer",
+  "name": "Name",
+  "phoneNumber": "Phone Number",
+  "required": "Required",
+  "add": "Add",
+  "general": "General",
+  "administration": "Administration",
+  "staffManagement": "Staff Management",
+  "edit": "Edit",
+  "deleteUser": "Delete User",
+  "deleteUserConfirmation": "Are you sure you want to delete {name}?",
+  "@deleteUserConfirmation": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "editUser": "Edit User",
+  "addUser": "Add User",
+  "email": "Email",
+  "passwordPlaceholder": "Password",
+  "passwordEditPlaceholder": "Password (leave blank to keep)",
+  "role": "Role",
+  "pinCode": "PIN Code (Optional)",
+  "shiftManagement": "Shift Management",
+  "openShift": "Open Shift",
+  "closeShift": "Close Shift",
+  "payIn": "Pay In",
+  "payOut": "Pay Out",
+  "amount": "Amount",
+  "reason": "Reason",
+  "startingCash": "Starting Cash",
+  "endingCash": "Ending Cash (Counted)",
+  "shiftId": "Shift ID: {id}",
+  "@shiftId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "started": "Started: {time}",
+  "@started": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "startingCashLabel": "Starting Cash: {amount}",
+  "@startingCashLabel": {
+    "placeholders": {
+      "amount": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": {
+          "symbol": "$",
+          "decimalDigits": 2
+        }
+      }
+    }
+  },
+  "notes": "Notes",
+  "save": "Save",
+  "open": "Open",
+  "close": "Close",
+  "deliveryManagement": "Delivery Management",
+  "noActiveDeliveryOrders": "No active delivery orders",
+  "orderNumber": "Order #{id}",
+  "@orderNumber": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "addressLabel": "Address: {address}",
+  "@addressLabel": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "noAddress": "No address",
+  "deliveryFeeLabel": "Delivery Fee: {fee}",
+  "@deliveryFeeLabel": {
+    "placeholders": {
+      "fee": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": {
+          "symbol": "$",
+          "decimalDigits": 2
+        }
+      }
+    }
+  },
+  "providerLabel": "Provider: {provider} (Ref: {refId})",
+  "@providerLabel": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "refId": {
+        "type": "String"
+      }
+    }
+  },
+  "itemsCount": "Items: {count}",
+  "@itemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "totalLabel": "Total: {total}",
+  "@totalLabel": {
+    "placeholders": {
+      "total": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": {
+          "symbol": "$",
+          "decimalDigits": 2
+        }
+      }
+    }
+  },
+  "externalDelivery": "External Delivery",
+  "driverAssigned": "Driver Assigned",
+  "uberEats": "UberEats",
+  "assignDriver": "Assign Driver",
+  "noDriversFound": "No drivers found. Add a user with DRIVER role.",
+  "assign": "Assign",
+  "cannotSyncNotLoggedIn": "Cannot sync: Not logged in",
+  "usePoints": "Use {points} pts (Available: {available})",
+  "@usePoints": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      },
+      "available": {
+        "type": "int"
+      }
+    }
+  },
+  "editItem": "Edit {name}",
+  "@editItem": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "startDelivery": "Start Delivery",
+  "markAsDelivered": "Mark as Delivered",
+  "completed": "Completed",
+  "customerLabel": "Customer: {name}",
+  "@customerLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noAssignedDeliveries": "No assigned deliveries.",
+  "pendingRefunds": "Pending Refunds",
+  "noPendingRefunds": "No pending refunds",
+  "refundLabel": "Refund {amount}",
+  "@refundLabel": {
+    "placeholders": {
+      "amount": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": {
+          "symbol": "$",
+          "decimalDigits": 2
+        }
+      }
+    }
+  },
+  "reasonLabel": "Reason: {reason}",
+  "@reasonLabel": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "dateLabel": "Date: {date}",
+  "@dateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reject": "Reject",
+  "approve": "Approve",
+  "refundApproved": "Refund Approved",
+  "refundRejected": "Refund Rejected",
+  "paymentStatus": "Payment Status",
+  "date": "Date",
+  "table": "Table",
+  "itemsTitle": "Items",
+  "refundsTitle": "Refunds",
+  "requestRefund": "Request Refund",
+  "voidOrder": "Void Order",
+  "returnStock": "Return Stock",
+  "refundRequested": "Refund requested",
+  "orderVoided": "Order Voided",
+  "submit": "Submit",
+  "voidAction": "Void",
+  "noSuppliersFound": "No suppliers found",
+  "noContactInfo": "No contact info",
+  "addSupplier": "Add Supplier",
+  "noIngredientsFound": "No ingredients found",
+  "addIngredient": "Add Ingredient",
+  "editIngredient": "Edit Ingredient",
+  "unitLabel": "Unit (e.g., kg, L)",
+  "adjustStockTitle": "Adjust Stock: {name}",
+  "@adjustStockTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "currentTotal": "Current Total: {total} {unit}",
+  "@currentTotal": {
+    "placeholders": {
+      "total": {
+        "type": "double",
+        "format": "decimalPattern"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "adjustmentAmount": "Adjustment Amount (+/-)",
+  "notesDescription": "Notes / Description",
+  "mandatoryForWaste": "Mandatory for Waste/Spoilage",
+  "noWarehousesFound": "No warehouses found",
+  "warehouse": "Warehouse",
+  "mainWarehouse": "Main",
+  "errorLoadingWarehouses": "Error loading warehouses: {error}",
+  "@errorLoadingWarehouses": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidAmount": "Invalid amount",
+  "descriptionRequired": "Description is required for Waste/Spoilage",
+  "adjust": "Adjust",
+  "noPurchaseOrders": "No Purchase Orders",
+  "poNumber": "PO #{id} - {supplier}",
+  "@poNumber": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      },
+      "supplier": {
+        "type": "String"
+      }
+    }
+  },
+  "poStatusTotal": "Status: {status}\nTotal: {total}",
+  "@poStatusTotal": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "total": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": {
+          "symbol": "$",
+          "decimalDigits": 2
+        }
+      }
+    }
+  },
+  "createPO": "Create Purchase Order",
+  "noSuppliersAvailable": "No suppliers available. Create one first.",
+  "selectSupplier": "Select Supplier",
+  "poDetails": "PO Details - {status}",
+  "@poDetails": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "receiveOrder": "Receive Order (Update Stock)",
+  "addItem": "Add Item",
+  "noIngredientsAvailable": "No ingredients. Create one first.",
+  "selectIngredient": "Select Ingredient",
+  "quantity": "Quantity",
+  "unitPrice": "Unit Price",
+  "ingredientLogs": "Ingredient Logs",
+  "inventoryLogs": "Inventory Logs",
+  "noLogsFound": "No inventory logs found",
+  "unknownIngredient": "Unknown Ingredient",
+  "warehouseLabel": "Warehouse: {name}",
+  "@warehouseLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "logout": "Logout",
+  "welcome": "Welcome",
+  "items": "items",
+  "total": "Total",
+  "checkout": "Checkout",
+  "addToCart": "Add to Cart",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "search": "Search",
+  "loading": "Loading...",
+  "error": "Error",
+  "success": "Success",
+  "noModifiersFound": "No modifiers found in products.",
+  "recipeTitle": "Recipe: {name}",
+  "@recipeTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noIngredientsInRecipe": "No ingredients in this recipe",
+  "quantityPerItem": "Quantity per item",
+  "noIngredientsAvailableSimple": "No ingredients available.",
+  "itemPriceQuantity": "{quantity} x {price}",
+  "@itemPriceQuantity": {
+    "placeholders": {
+      "quantity": {
+        "type": "int"
+      },
+      "price": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": {
+          "symbol": "$",
+          "decimalDigits": 2
+        }
+      }
+    }
+  },
+  "priceLabel": "{price}",
+  "@priceLabel": {
+    "placeholders": {
+      "price": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": {
+          "symbol": "$",
+          "decimalDigits": 2
+        }
+      }
+    }
+  },
+  "firedCourse": "Fired {course}!",
+  "@firedCourse": {
+    "placeholders": {
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "tableOrderTitle": "Table {number} Order",
+  "@tableOrderTitle": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveOrderFound": "No active order found",
+  "fire": "FIRE",
+  "quantityCount": "x{count}",
+  "@quantityCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "selectAtLeast": "Please select at least {count} option(s) for {name}",
+  "@selectAtLeast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "selectOne": "Select 1",
+  "selectUpTo": "Select up to {count}",
+  "@selectUpTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "specialInstructions": "Special instructions...",
+  "notesLabel": "Notes",
+  "addToCartTotal": "Add to Cart - {total}",
+  "@addToCartTotal": {
+    "placeholders": {
+      "total": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": {
+          "symbol": "$",
+          "decimalDigits": 2
+        }
+      }
+    }
+  }
+}
