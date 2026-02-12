@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
+import '../../../theme/pos_theme.dart';
 import 'reports_controller.dart';
 
 class ReportsScreen extends ConsumerWidget {
@@ -8,49 +9,56 @@ class ReportsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.reportsAndAnalytics),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.invalidate(dailySalesProvider);
-              ref.invalidate(topProductsProvider);
-              ref.invalidate(lowStockAlertsProvider);
-              ref.invalidate(salesByCategoryProvider);
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDailySalesCard(context, ref),
-            const SizedBox(height: 16),
-            Text(
-              AppLocalizations.of(context)!.lowStockAlerts,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.reportsAndAnalytics),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () {
+                ref.invalidate(dailySalesProvider);
+                ref.invalidate(topProductsProvider);
+                ref.invalidate(lowStockAlertsProvider);
+                ref.invalidate(salesByCategoryProvider);
+              },
             ),
-            const SizedBox(height: 8),
-            _buildLowStockList(context, ref),
-            const SizedBox(height: 16),
-            Text(
-              AppLocalizations.of(context)!.topProducts,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _buildTopProductsList(context, ref),
-            const SizedBox(height: 16),
-            Text(
-              AppLocalizations.of(context)!.salesByCategory,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _buildSalesByCategoryList(context, ref),
           ],
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDailySalesCard(context, ref),
+              const SizedBox(height: 16),
+              Text(
+                AppLocalizations.of(context)!.lowStockAlerts,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Card(child: _buildLowStockList(context, ref)),
+              const SizedBox(height: 16),
+              Text(
+                AppLocalizations.of(context)!.topProducts,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Card(child: _buildTopProductsList(context, ref)),
+              const SizedBox(height: 16),
+              Text(
+                AppLocalizations.of(context)!.salesByCategory,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Card(child: _buildSalesByCategoryList(context, ref)),
+            ],
+          ),
         ),
       ),
     );
@@ -61,8 +69,9 @@ class ReportsScreen extends ConsumerWidget {
 
     return salesAsync.when(
       data: (items) {
-        if (items.isEmpty)
+        if (items.isEmpty) {
           return Text(AppLocalizations.of(context)!.noDataAvailable);
+        }
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -70,7 +79,7 @@ class ReportsScreen extends ConsumerWidget {
           itemBuilder: (context, index) {
             final item = items[index];
             return ListTile(
-              leading: const Icon(Icons.category, color: Colors.blue),
+              leading: const Icon(Icons.category, color: POSTheme.secondary),
               title: Text(item['categoryName'] ??
                   AppLocalizations.of(context)!.uncategorized),
               trailing: Text(AppLocalizations.of(context)!
@@ -106,7 +115,7 @@ class ReportsScreen extends ConsumerWidget {
                     style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green),
+                        color: POSTheme.primary),
                   ),
                   Text(AppLocalizations.of(context)!
                       .salesCount(data['count'] ?? 0)),
@@ -127,8 +136,9 @@ class ReportsScreen extends ConsumerWidget {
 
     return lowStockAsync.when(
       data: (items) {
-        if (items.isEmpty)
+        if (items.isEmpty) {
           return Text(AppLocalizations.of(context)!.noLowStockAlerts);
+        }
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -136,7 +146,7 @@ class ReportsScreen extends ConsumerWidget {
           itemBuilder: (context, index) {
             final item = items[index];
             return ListTile(
-              leading: const Icon(Icons.warning, color: Colors.orange),
+              leading: const Icon(Icons.warning, color: POSTheme.accent),
               title: Text(item['name'] ?? 'Unknown Item'),
               subtitle: Text(AppLocalizations.of(context)!.stockLevel(
                   (item['currentStock'] as num).toDouble(),
@@ -157,8 +167,9 @@ class ReportsScreen extends ConsumerWidget {
 
     return topProductsAsync.when(
       data: (items) {
-        if (items.isEmpty)
+        if (items.isEmpty) {
           return Text(AppLocalizations.of(context)!.noDataAvailable);
+        }
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),

@@ -360,6 +360,38 @@ export class OrdersService {
       throw new BadRequestException(`Invalid order source: ${source}`);
     }
 
+    const normalizedDeliveryAddress =
+      typeof deliveryAddress === 'string' ? deliveryAddress.trim() : '';
+    const normalizedDriverId = typeof driverId === 'string' ? driverId.trim() : '';
+    const normalizedDeliveryFee = this.parseNonNegativeAmount(
+      deliveryFee,
+      'Delivery fee',
+    );
+
+    if (effectiveType === OrderType.DELIVERY && !normalizedDeliveryAddress) {
+      throw new BadRequestException(
+        'Delivery address is required for delivery orders',
+      );
+    }
+
+    if (effectiveType !== OrderType.DELIVERY) {
+      if (normalizedDeliveryAddress) {
+        throw new BadRequestException(
+          'Delivery address is only valid for delivery orders',
+        );
+      }
+      if (normalizedDriverId) {
+        throw new BadRequestException(
+          'Driver ID is only valid for delivery orders',
+        );
+      }
+      if (normalizedDeliveryFee > 0) {
+        throw new BadRequestException(
+          'Delivery fee is only valid for delivery orders',
+        );
+      }
+    }
+
     const preparedItems = await this.prepareOrderItems(items);
     const hasStock = await this.inventoryService.checkStockAvailability(
       preparedItems.stockCheckItems,
@@ -377,10 +409,6 @@ export class OrdersService {
         data.discountAmount,
         'Discount amount',
       );
-      const normalizedDeliveryFee = this.parseNonNegativeAmount(
-        deliveryFee,
-        'Delivery fee',
-      );
 
       const totalTax = preparedItems.tax + globalTax;
       const totalDiscount = preparedItems.discount + globalDiscount;
@@ -389,14 +417,23 @@ export class OrdersService {
         totalDiscount +
         totalTax +
         normalizedDeliveryFee;
+      if (finalTotal < 0) {
+        throw new BadRequestException(
+          'Order total cannot be negative after discount/tax/fees',
+        );
+      }
 
       const order = new Order();
       order.table = table;
       order.type = effectiveType;
       order.source = effectiveSource;
-      order.deliveryAddress = deliveryAddress;
+      if (normalizedDeliveryAddress) {
+        order.deliveryAddress = normalizedDeliveryAddress;
+      }
       order.deliveryFee = normalizedDeliveryFee;
-      order.driverId = driverId;
+      if (normalizedDriverId) {
+        order.driverId = normalizedDriverId;
+      }
       order.items = preparedItems.orderItems;
       order.taxAmount = totalTax;
       order.discountAmount = totalDiscount;
@@ -706,13 +743,15 @@ export class OrdersService {
       throw new BadRequestException('Cannot redeem points on closed order');
     }
 
+    const normalizedPoints = this.parsePositiveInteger(points, 'Points');
+
     const customer = await this.customersService.findOne(order.customerId);
     if (!customer) throw new NotFoundException('Customer not found');
-    if (customer.loyaltyPoints < points)
+    if (customer.loyaltyPoints < normalizedPoints)
       throw new BadRequestException('Insufficient points');
 
     // Calculate value: 10 points = 1.00 currency
-    const discountValue = points / 10;
+    const discountValue = normalizedPoints / 10;
 
     if (discountValue > Number(order.totalAmount)) {
       throw new BadRequestException('Redemption value exceeds order total');
@@ -721,14 +760,15 @@ export class OrdersService {
     // Deduct points immediately
     await this.customersService.addPoints(
       order.customerId,
-      -points,
+      -normalizedPoints,
       LoyaltyTransactionType.REDEEM,
       id,
     );
 
     order.discountAmount = Number(order.discountAmount) + discountValue;
     order.totalAmount = Number(order.totalAmount) - discountValue;
-    order.redeemedPoints = (Number(order.redeemedPoints) || 0) + points;
+    order.redeemedPoints =
+      (Number(order.redeemedPoints) || 0) + normalizedPoints;
 
     const saved = await this.ordersRepository.save(order);
     this.ordersGateway.notifyOrderUpdate(saved);
@@ -898,7 +938,21 @@ export class OrdersService {
 
   async updateDeliveryInfo(id: string, info: any): Promise<Order> {
     const order = await this.findOne(id);
-    if (info.driverId) order.driverId = info.driverId;
+    if (typeof info.driverId === 'string' && info.driverId.trim()) {
+      order.driverId = info.driverId.trim();
+    }
+    if (
+      typeof info.deliveryProvider === 'string' &&
+      info.deliveryProvider.trim()
+    ) {
+      order.deliveryProvider = info.deliveryProvider.trim();
+    }
+    if (
+      typeof info.deliveryReferenceId === 'string' &&
+      info.deliveryReferenceId.trim()
+    ) {
+      order.deliveryReferenceId = info.deliveryReferenceId.trim();
+    }
     return this.ordersRepository.save(order);
   }
 

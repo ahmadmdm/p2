@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
 import '../../../../domain/entities/ingredient.dart';
+import '../../../theme/pos_theme.dart';
 import 'inventory_controller.dart';
 import 'inventory_logs_screen.dart';
 
@@ -12,7 +13,10 @@ class IngredientsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ingredientsAsync = ref.watch(ingredientsControllerProvider);
 
-    return Scaffold(
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+      backgroundColor: Colors.transparent,
       body: ingredientsAsync.when(
         data: (ingredients) {
           if (ingredients.isEmpty) {
@@ -35,12 +39,12 @@ class IngredientsScreen extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit),
+                        icon: const Icon(Icons.edit, color: POSTheme.secondary),
                         onPressed: () => _showAddEditIngredientDialog(
                             context, ref, ingredient),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.history),
+                        icon: const Icon(Icons.history, color: POSTheme.primary),
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -50,7 +54,7 @@ class IngredientsScreen extends ConsumerWidget {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.inventory),
+                        icon: const Icon(Icons.inventory, color: POSTheme.accent),
                         onPressed: () => showDialog(
                           context: context,
                           builder: (_) =>
@@ -71,6 +75,7 @@ class IngredientsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditIngredientDialog(context, ref, null),
         child: const Icon(Icons.add),
+      ),
       ),
     );
   }
@@ -206,7 +211,7 @@ class _AdjustStockDialogState extends ConsumerState<AdjustStockDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: selectedReason,
+              initialValue: selectedReason,
               decoration: InputDecoration(
                   labelText: AppLocalizations.of(context)!.reason),
               items: reasons
@@ -226,8 +231,9 @@ class _AdjustStockDialogState extends ConsumerState<AdjustStockDialog> {
             const SizedBox(height: 16),
             warehousesAsync.when(
               data: (warehouses) {
-                if (warehouses.isEmpty)
+                if (warehouses.isEmpty) {
                   return Text(AppLocalizations.of(context)!.noWarehousesFound);
+                }
                 // Auto-select main if not selected
                 if (selectedWarehouseId == null && warehouses.isNotEmpty) {
                   // Use microtask to avoid build phase setState
@@ -241,7 +247,7 @@ class _AdjustStockDialogState extends ConsumerState<AdjustStockDialog> {
                 }
 
                 return DropdownButtonFormField<String>(
-                  value: selectedWarehouseId,
+                  initialValue: selectedWarehouseId,
                   decoration: InputDecoration(
                       labelText: AppLocalizations.of(context)!.warehouse),
                   items: warehouses

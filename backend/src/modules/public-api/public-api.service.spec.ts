@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { PublicApiService } from './public-api.service';
 import { TablesService } from '../tables/tables.service';
 import { CatalogService } from '../catalog/catalog.service';
@@ -102,5 +103,35 @@ describe('PublicApiService', () => {
     expect(result.categories[0].id).toBe('cat-1');
     expect(result.categories[0].products).toHaveLength(1);
     expect(result.categories[0].products[0].id).toBe('p1');
+  });
+
+  it('rejects creating a new order when table already has active order', async () => {
+    tablesServiceMock.findByQrCode.mockResolvedValue({
+      id: 'table-1',
+      tableNumber: 'A1',
+    });
+    ordersServiceMock.findActiveOrderForTable.mockResolvedValue({
+      id: 'order-active',
+    });
+
+    await expect(
+      service.createOrder('token-1', {
+        items: [{ productId: 'product-1', quantity: 1 }],
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(ordersServiceMock.createOrder).not.toHaveBeenCalled();
+  });
+
+  it('rejects bill request when no active order exists', async () => {
+    tablesServiceMock.findByQrCode.mockResolvedValue({
+      id: 'table-1',
+      tableNumber: 'A1',
+    });
+    ordersServiceMock.findActiveOrderForTable.mockResolvedValue(null);
+
+    await expect(service.requestBill('token-1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(ordersServiceMock.notifyBillRequest).not.toHaveBeenCalled();
   });
 });

@@ -52,10 +52,30 @@ export class PublicApiController {
     // Here, we provide the mechanism. If the client sends captcha headers, we validate them.
     // If strict mode was enabled, we would throw if missing.
 
-    if (captchaId && captchaAnswer) {
+    const normalizedCaptchaId =
+      typeof captchaId === 'string' ? captchaId.trim() : '';
+    const normalizedCaptchaAnswer =
+      typeof captchaAnswer === 'string' ? captchaAnswer.trim() : '';
+    const hasCaptchaId = Boolean(normalizedCaptchaId);
+    const hasCaptchaAnswer = Boolean(normalizedCaptchaAnswer);
+
+    if (hasCaptchaId !== hasCaptchaAnswer) {
+      throw new BadRequestException(
+        'Both captcha headers are required when captcha is provided',
+      );
+    }
+
+    const strictCaptchaMode = ['1', 'true', 'yes'].includes(
+      (process.env.PUBLIC_API_CAPTCHA_REQUIRED || '').toLowerCase(),
+    );
+    if (strictCaptchaMode && !(hasCaptchaId && hasCaptchaAnswer)) {
+      throw new BadRequestException('Captcha is required');
+    }
+
+    if (hasCaptchaId && hasCaptchaAnswer) {
       const isValid = this.captchaService.validateCaptcha(
-        captchaId,
-        captchaAnswer,
+        normalizedCaptchaId,
+        normalizedCaptchaAnswer,
       );
       if (!isValid) {
         throw new BadRequestException('Invalid captcha');

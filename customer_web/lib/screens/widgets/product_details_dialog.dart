@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:customer_web/l10n/app_localizations.dart';
 import '../../providers/cart_provider.dart';
+import '../../theme/app_theme.dart';
 
 class ProductDetailsDialog extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -117,6 +118,8 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
         : widget.product['name'];
 
     return Dialog(
+      backgroundColor: Colors.white.withValues(alpha: 0.96),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 800),
         child: Column(
@@ -151,7 +154,8 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
                   Text(
                     '\$${widget.product['price']}',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).primaryColor,
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -175,7 +179,10 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: Text(
                             '$groupName ${min > 0 ? '(Required)' : ''} ${max > 1 ? '(Max $max)' : ''}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.secondary,
+                            ),
                           ),
                         ),
                         ...items.map((item) {
@@ -215,6 +222,7 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
                                   },
                                 )
                               : CheckboxListTile(
+                                  activeColor: AppTheme.secondary,
                                   title: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -240,8 +248,8 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _notesController,
-                    decoration: const InputDecoration(
-                      labelText: 'Special Instructions / Notes',
+                    decoration: InputDecoration(
+                      labelText: l10n.notes,
                       border: OutlineInputBorder(),
                     ),
                     maxLines: 2,
@@ -313,6 +321,7 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
                             }
                           : null,
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.secondary,
                         padding: const EdgeInsets.all(16),
                       ),
                       child: Text(

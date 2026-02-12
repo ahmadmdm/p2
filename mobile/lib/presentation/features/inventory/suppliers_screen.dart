@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
+import '../../../theme/pos_theme.dart';
 import 'inventory_controller.dart';
 
 class SuppliersScreen extends ConsumerWidget {
@@ -10,13 +11,16 @@ class SuppliersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final suppliersAsync = ref.watch(suppliersControllerProvider);
 
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSupplierDialog(context, ref),
-        child: const Icon(Icons.add),
-      ),
-      body: suppliersAsync.when(
-        data: (suppliers) {
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showAddSupplierDialog(context, ref),
+          child: const Icon(Icons.add),
+        ),
+        body: suppliersAsync.when(
+          data: (suppliers) {
           if (suppliers.isEmpty) {
             return Center(
                 child: Text(AppLocalizations.of(context)!.noSuppliersFound));
@@ -25,21 +29,25 @@ class SuppliersScreen extends ConsumerWidget {
             itemCount: suppliers.length,
             itemBuilder: (context, index) {
               final supplier = suppliers[index];
-              return ListTile(
-                title: Text(supplier.name),
-                subtitle: Text(supplier.email ??
-                    supplier.phone ??
-                    AppLocalizations.of(context)!.noContactInfo),
-                trailing: supplier.isActive
-                    ? const Icon(Icons.check_circle, color: Colors.green)
-                    : const Icon(Icons.cancel, color: Colors.red),
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: ListTile(
+                  title: Text(supplier.name),
+                  subtitle: Text(supplier.email ??
+                      supplier.phone ??
+                      AppLocalizations.of(context)!.noContactInfo),
+                  trailing: supplier.isActive
+                      ? const Icon(Icons.check_circle, color: POSTheme.secondary)
+                      : const Icon(Icons.cancel, color: Colors.red),
+                ),
               );
             },
           );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            Center(child: Text('${AppLocalizations.of(context)!.error}: $err')),
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(
+              child: Text('${AppLocalizations.of(context)!.error}: $err')),
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:pos_mobile/l10n/app_localizations.dart';
 import '../../../domain/entities/order.dart';
 import '../../../domain/entities/order_type.dart';
 import '../../../domain/entities/order_status.dart';
+import '../../../theme/pos_theme.dart';
 import '../../features/users/users_controller.dart';
 import 'delivery_orders_controller.dart';
 
@@ -14,44 +15,48 @@ class DeliveryOrdersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(deliveryOrdersControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.deliveryManagement),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.invalidate(deliveryOrdersControllerProvider);
-            },
-          ),
-        ],
-      ),
-      body: ordersAsync.when(
-        data: (orders) {
-          final deliveryOrders = orders
-              .where((o) =>
-                  o.type == OrderType.DELIVERY &&
-                  o.status != OrderStatus.COMPLETED &&
-                  o.status != OrderStatus.CANCELLED)
-              .toList();
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.deliveryManagement),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () {
+                ref.invalidate(deliveryOrdersControllerProvider);
+              },
+            ),
+          ],
+        ),
+        body: ordersAsync.when(
+          data: (orders) {
+            final deliveryOrders = orders
+                .where((o) =>
+                    o.type == OrderType.DELIVERY &&
+                    o.status != OrderStatus.COMPLETED &&
+                    o.status != OrderStatus.CANCELLED)
+                .toList();
 
-          if (deliveryOrders.isEmpty) {
-            return Center(
-                child:
-                    Text(AppLocalizations.of(context)!.noActiveDeliveryOrders));
-          }
+            if (deliveryOrders.isEmpty) {
+              return Center(
+                  child:
+                      Text(AppLocalizations.of(context)!.noActiveDeliveryOrders));
+            }
 
-          return ListView.builder(
-            itemCount: deliveryOrders.length,
-            itemBuilder: (context, index) {
-              final order = deliveryOrders[index];
-              return _DeliveryOrderCard(order: order);
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) =>
-            Center(child: Text('${AppLocalizations.of(context)!.error}: $e')),
+            return ListView.builder(
+              itemCount: deliveryOrders.length,
+              itemBuilder: (context, index) {
+                final order = deliveryOrders[index];
+                return _DeliveryOrderCard(order: order);
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, s) =>
+              Center(child: Text('${AppLocalizations.of(context)!.error}: $e')),
+        ),
       ),
     );
   }
@@ -100,7 +105,7 @@ class _DeliveryOrderCard extends ConsumerWidget {
               Text(
                   AppLocalizations.of(context)!.providerLabel(
                       order.deliveryProvider!, order.deliveryReferenceId ?? ''),
-                  style: const TextStyle(color: Colors.blue)),
+                  style: const TextStyle(color: POSTheme.secondary)),
             const SizedBox(height: 8),
             Text(AppLocalizations.of(context)!.itemsCount(order.items.length)),
             const Divider(),
@@ -136,6 +141,9 @@ class _DeliveryOrderCard extends ConsumerWidget {
                       ElevatedButton.icon(
                         icon: const Icon(Icons.person_add),
                         label: Text(AppLocalizations.of(context)!.assignDriver),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: POSTheme.primary,
+                        ),
                         onPressed: () => _showAssignDriverDialog(context, ref),
                       ),
                     ],
@@ -151,13 +159,13 @@ class _DeliveryOrderCard extends ConsumerWidget {
   Color _getStatusColor(OrderStatus status) {
     switch (status) {
       case OrderStatus.PENDING:
-        return Colors.orange.shade100;
+        return POSTheme.accent.withValues(alpha: 0.28);
       case OrderStatus.PREPARING:
-        return Colors.blue.shade100;
+        return POSTheme.secondary.withValues(alpha: 0.22);
       case OrderStatus.READY:
-        return Colors.green.shade100;
+        return POSTheme.primary.withValues(alpha: 0.22);
       case OrderStatus.SERVED: // Used for On Delivery maybe?
-        return Colors.purple.shade100;
+        return Colors.deepPurple.shade100;
       default:
         return Colors.grey.shade100;
     }
@@ -203,12 +211,16 @@ class _AssignDriverDialogState extends ConsumerState<_AssignDriverDialog> {
               itemCount: drivers.length,
               itemBuilder: (context, index) {
                 final driver = drivers[index];
-                return RadioListTile<String>(
+                final isSelected = selectedDriverId == driver.id;
+                return ListTile(
+                  selected: isSelected,
+                  selectedTileColor: POSTheme.surfaceTint.withValues(alpha: 0.45),
                   title: Text(driver.name),
                   subtitle: Text(driver.email),
-                  value: driver.id,
-                  groupValue: selectedDriverId,
-                  onChanged: (val) => setState(() => selectedDriverId = val),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle, color: POSTheme.secondary)
+                      : const Icon(Icons.circle_outlined),
+                  onTap: () => setState(() => selectedDriverId = driver.id),
                 );
               },
             ),

@@ -9,8 +9,9 @@ export default function Landing() {
 
   const handleScan = (e: FormEvent) => {
     e.preventDefault();
-    if (tableId) {
-      navigate(`/t/${tableId}/menu`);
+    const normalizedTableId = tableId.trim();
+    if (normalizedTableId) {
+      navigate(`/t/${normalizedTableId}/menu`);
     }
   };
 

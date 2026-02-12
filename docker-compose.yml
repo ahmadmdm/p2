@@ -1,10 +1,8 @@
-# Docker Compose for POS System (Backend + DB)
-
 services:
-  # PostgreSQL Database
   db:
     image: postgres:15-alpine
     container_name: pos_db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
@@ -13,14 +11,21 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d pos_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
-  # NestJS Backend
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: pos_backend
+    restart: unless-stopped
     environment:
+      NODE_ENV: production
+      PORT: 3000
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: admin
@@ -30,11 +35,36 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - db
-    volumes:
-      - ./backend:/usr/src/app
-      - /usr/src/app/node_modules
-    command: npm run start:dev
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pos_seed
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: password
+      DB_NAME: pos_db
+      JWT_SECRET: super_secret_key
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command: sh -c "npm run seed"
+    restart: "no"
+    profiles:
+      - seed
 
 volumes:
   postgres_data:

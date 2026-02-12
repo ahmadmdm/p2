@@ -5,6 +5,7 @@ import {
   Param,
   Logger,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 
@@ -19,12 +20,18 @@ export class DeliveryController {
     @Param('orderId') orderId: string,
     @Body('provider') providerName: string,
   ) {
+    const normalizedProvider =
+      typeof providerName === 'string' ? providerName.trim() : '';
+    if (!normalizedProvider) {
+      throw new BadRequestException('Provider is required');
+    }
+
     const order = await this.deliveryService.getOrder(orderId);
     if (!order) {
       throw new NotFoundException('Order not found');
     }
     const referenceId = await this.deliveryService.requestDelivery(
-      providerName || 'mock-aggregator',
+      normalizedProvider,
       order,
     );
     return { success: true, referenceId };

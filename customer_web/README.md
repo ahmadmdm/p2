@@ -1,16 +1,36 @@
-# customer_web
+# Customer Web (Flutter)
 
-A new Flutter project.
+Customer-facing QR ordering app built with Flutter Web.
 
-## Getting Started
+## Purpose
 
-This project is a starting point for a Flutter application.
+- Scan/open a table token (`?t=<token>`)
+- Browse menu
+- Create order or add items to active order
+- Track order status
+- Request bill
 
-A few resources to get you started if this is your first Flutter project:
+## Run Locally
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+cd customer_web
+flutter pub get
+flutter run -d chrome
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Backend URL
+
+This app reads the public API base URL from compile-time define:
+
+- `PUBLIC_API_BASE_URL` (default: `http://localhost:3000/public-api`)
+
+Example:
+
+```bash
+flutter run -d chrome --dart-define=PUBLIC_API_BASE_URL=http://localhost:3000/public-api
+```
+
+## Notes
+
+- This is the production customer web implementation in this repository.
+- Legacy React app is archived at `../archive/web-customer-legacy`.

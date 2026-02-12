@@ -9,6 +9,21 @@ import { PurchaseOrder, PurchaseOrderStatus } from './purchase-order.entity';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
 import { InventoryService } from '../inventory/inventory.service';
 
+const PURCHASE_ORDER_STATUS_TRANSITIONS: Readonly<
+  Record<PurchaseOrderStatus, readonly PurchaseOrderStatus[]>
+> = {
+  [PurchaseOrderStatus.DRAFT]: [
+    PurchaseOrderStatus.ORDERED,
+    PurchaseOrderStatus.CANCELLED,
+  ],
+  [PurchaseOrderStatus.ORDERED]: [
+    PurchaseOrderStatus.RECEIVED,
+    PurchaseOrderStatus.CANCELLED,
+  ],
+  [PurchaseOrderStatus.RECEIVED]: [],
+  [PurchaseOrderStatus.CANCELLED]: [],
+};
+
 @Injectable()
 export class PurchasingService {
   constructor(
@@ -20,7 +35,33 @@ export class PurchasingService {
     private dataSource: DataSource,
   ) {}
 
+  private parsePositiveAmount(value: unknown, fieldName: string): number {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      throw new BadRequestException(`${fieldName} must be greater than zero`);
+    }
+    return parsed;
+  }
+
+  private ensureStatusTransition(
+    from: PurchaseOrderStatus,
+    to: PurchaseOrderStatus,
+  ): void {
+    if (from === to) {
+      return;
+    }
+    if (!PURCHASE_ORDER_STATUS_TRANSITIONS[from].includes(to)) {
+      throw new BadRequestException(
+        `Invalid purchase order status transition: ${from} -> ${to}`,
+      );
+    }
+  }
+
   async create(data: Partial<PurchaseOrder>) {
+    if (!data.supplierId || typeof data.supplierId !== 'string') {
+      throw new BadRequestException('Supplier ID is required');
+    }
+
     const po = this.poRepository.create({
       ...data,
       status: PurchaseOrderStatus.DRAFT,
@@ -49,12 +90,20 @@ export class PurchasingService {
     if (po.status !== PurchaseOrderStatus.DRAFT) {
       throw new BadRequestException('Cannot add items to non-draft PO');
     }
+    if (!itemData.ingredientId || typeof itemData.ingredientId !== 'string') {
+      throw new BadRequestException('Ingredient ID is required');
+    }
+
+    const quantity = this.parsePositiveAmount(itemData.quantity, 'Quantity');
+    const unitPrice = this.parsePositiveAmount(itemData.unitPrice, 'Unit price');
 
     // Calculate total price for item
-    const totalPrice = (itemData.quantity || 0) * (itemData.unitPrice || 0);
+    const totalPrice = quantity * unitPrice;
 
     const item = this.poItemRepository.create({
       ...itemData,
+      quantity,
+      unitPrice,
       totalPrice,
       purchaseOrder: po,
     });
@@ -83,7 +132,11 @@ export class PurchasingService {
   async updateStatus(id: string, status: PurchaseOrderStatus) {
     const po = await this.findOne(id);
 
+    if (!Object.values(PurchaseOrderStatus).includes(status)) {
+      throw new BadRequestException(`Invalid purchase order status: ${status}`);
+    }
     if (po.status === status) return po;
+    this.ensureStatusTransition(po.status, status);
 
     // Transactional status change
     return this.dataSource.transaction(async (manager) => {
@@ -92,25 +145,22 @@ export class PurchasingService {
         status === PurchaseOrderStatus.RECEIVED &&
         po.status !== PurchaseOrderStatus.RECEIVED
       ) {
+        if (!po.items || po.items.length === 0) {
+          throw new BadRequestException(
+            'Cannot receive purchase order without items',
+          );
+        }
         for (const item of po.items) {
           await this.inventoryService.updateStock(
             item.ingredientId,
             item.quantity,
             manager,
+            undefined,
+            'RESTOCK',
+            po.id,
+            `PO ${po.id} received`,
           );
         }
-      }
-
-      // If moving FROM RECEIVED to something else (e.g. CANCELLED/DRAFT), revert inventory?
-      // Usually we don't allow reverting RECEIVED POs easily without a return process.
-      // But for simplicity, let's block it.
-      if (
-        po.status === PurchaseOrderStatus.RECEIVED &&
-        status !== PurchaseOrderStatus.RECEIVED
-      ) {
-        throw new BadRequestException(
-          'Cannot revert a Received PO. Create a return instead.',
-        );
       }
 
       po.status = status;

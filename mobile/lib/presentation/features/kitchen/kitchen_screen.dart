@@ -17,6 +17,28 @@ class KitchenScreen extends ConsumerStatefulWidget {
 class _KitchenScreenState extends ConsumerState<KitchenScreen> {
   String? _selectedStationId;
 
+  String _stationIdOf(dynamic station) {
+    if (station is Map<String, dynamic>) return station['id']?.toString() ?? '';
+    if (station is Map) return station['id']?.toString() ?? '';
+    try {
+      return (station.id as Object?)?.toString() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _stationNameOf(dynamic station) {
+    if (station is Map<String, dynamic>) {
+      return station['name']?.toString() ?? 'Unknown';
+    }
+    if (station is Map) return station['name']?.toString() ?? 'Unknown';
+    try {
+      return (station.name as Object?)?.toString() ?? 'Unknown';
+    } catch (_) {
+      return 'Unknown';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ordersAsync =
@@ -45,8 +67,8 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
                   child: Text(AppLocalizations.of(context)!.allStations),
                 ),
                 ...stations.map((s) => DropdownMenuItem(
-                      value: s.id,
-                      child: Text(s.name),
+                      value: _stationIdOf(s),
+                      child: Text(_stationNameOf(s)),
                     )),
               ],
             ),
@@ -187,38 +209,42 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    ...((itemsByCourse[course] ?? const <order_item.OrderItem>[]).map((item) => Padding(
-                          padding:
-                              const EdgeInsets.only(left: 8.0, bottom: 4.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${AppLocalizations.of(context)!.quantityCount(item.quantity)} ${Localizations.localeOf(context).languageCode == 'ar' ? item.product.nameAr : item.product.nameEn}',
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.bold),
+                    ...((itemsByCourse[course] ??
+                            const <order_item.OrderItem>[])
+                        .map((item) => Padding(
+                              padding:
+                                  const EdgeInsets.only(left: 8.0, bottom: 4.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${AppLocalizations.of(context)!.quantityCount(item.quantity)} ${Localizations.localeOf(context).languageCode == 'ar' ? item.product.nameAr : item.product.nameEn}',
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  if (item.modifiers.isNotEmpty)
+                                    Text(
+                                      item.modifiers
+                                          .map((m) =>
+                                              '+ ${Localizations.localeOf(context).languageCode == 'ar' ? m.nameAr : m.nameEn}')
+                                          .join(', '),
+                                      style: const TextStyle(
+                                          fontSize: 12, color: Colors.blueGrey),
+                                    ),
+                                  if (item.notes != null &&
+                                      item.notes!.isNotEmpty)
+                                    Text(
+                                      AppLocalizations.of(context)!
+                                          .note(item.notes!),
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.red,
+                                          fontStyle: FontStyle.italic),
+                                    ),
+                                ],
                               ),
-                              if (item.modifiers.isNotEmpty)
-                                Text(
-                                  item.modifiers
-                                      .map((m) =>
-                                          '+ ${Localizations.localeOf(context).languageCode == 'ar' ? m.nameAr : m.nameEn}')
-                                      .join(', '),
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.blueGrey),
-                                ),
-                              if (item.notes != null && item.notes!.isNotEmpty)
-                                Text(
-                                  AppLocalizations.of(context)!
-                                      .note(item.notes!),
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.red,
-                                      fontStyle: FontStyle.italic),
-                                ),
-                            ],
-                          ),
-                        ))),
+                            ))),
                     const Divider(height: 12),
                   ],
                 )),
@@ -257,4 +283,3 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
     );
   }
 }
-

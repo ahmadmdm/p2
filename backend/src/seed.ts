@@ -212,14 +212,86 @@ async function bootstrap() {
     }
 
     const productsSeed = [
-      { en: 'Caesar Salad', ar: 'Caesar Salad', category: 'Starters', price: 19.5, course: 'STARTER', station: 'Hot Kitchen' },
-      { en: 'Tomato Soup', ar: 'Tomato Soup', category: 'Starters', price: 14, course: 'STARTER', station: 'Hot Kitchen' },
-      { en: 'Classic Burger', ar: 'Classic Burger', category: 'Mains', price: 34, course: 'MAIN', station: 'Hot Kitchen' },
-      { en: 'Grilled Chicken', ar: 'Grilled Chicken', category: 'Mains', price: 42, course: 'MAIN', station: 'Hot Kitchen' },
-      { en: 'Cheesecake', ar: 'Cheesecake', category: 'Desserts', price: 18, course: 'DESSERT', station: 'Dessert' },
-      { en: 'Cola', ar: 'Cola', category: 'Drinks', price: 7, course: 'DRINK', station: 'Bar' },
-      { en: 'Orange Juice', ar: 'Orange Juice', category: 'Drinks', price: 9, course: 'DRINK', station: 'Bar' },
-      { en: 'Latte', ar: 'Latte', category: 'Drinks', price: 13, course: 'DRINK', station: 'Bar' },
+      {
+        en: 'Caesar Salad',
+        ar: 'Caesar Salad',
+        category: 'Starters',
+        price: 19.5,
+        course: 'STARTER',
+        station: 'Hot Kitchen',
+        imageUrl:
+          'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=1200&auto=format&fit=crop',
+      },
+      {
+        en: 'Tomato Soup',
+        ar: 'Tomato Soup',
+        category: 'Starters',
+        price: 14,
+        course: 'STARTER',
+        station: 'Hot Kitchen',
+        imageUrl:
+          'https://images.unsplash.com/photo-1547592180-85f173990554?w=1200&auto=format&fit=crop',
+      },
+      {
+        en: 'Classic Burger',
+        ar: 'Classic Burger',
+        category: 'Mains',
+        price: 34,
+        course: 'MAIN',
+        station: 'Hot Kitchen',
+        imageUrl:
+          'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&auto=format&fit=crop',
+      },
+      {
+        en: 'Grilled Chicken',
+        ar: 'Grilled Chicken',
+        category: 'Mains',
+        price: 42,
+        course: 'MAIN',
+        station: 'Hot Kitchen',
+        imageUrl:
+          'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=1200&auto=format&fit=crop',
+      },
+      {
+        en: 'Cheesecake',
+        ar: 'Cheesecake',
+        category: 'Desserts',
+        price: 18,
+        course: 'DESSERT',
+        station: 'Dessert',
+        imageUrl:
+          'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=1200&auto=format&fit=crop',
+      },
+      {
+        en: 'Cola',
+        ar: 'Cola',
+        category: 'Drinks',
+        price: 7,
+        course: 'DRINK',
+        station: 'Bar',
+        imageUrl:
+          'https://images.unsplash.com/photo-1629203432180-71e9b6d8f5c3?w=1200&auto=format&fit=crop',
+      },
+      {
+        en: 'Orange Juice',
+        ar: 'Orange Juice',
+        category: 'Drinks',
+        price: 9,
+        course: 'DRINK',
+        station: 'Bar',
+        imageUrl:
+          'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=1200&auto=format&fit=crop',
+      },
+      {
+        en: 'Latte',
+        ar: 'Latte',
+        category: 'Drinks',
+        price: 13,
+        course: 'DRINK',
+        station: 'Bar',
+        imageUrl:
+          'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1200&auto=format&fit=crop',
+      },
     ] as const;
 
     const productsByEn = new Map<string, Product>();
@@ -228,6 +300,7 @@ async function bootstrap() {
       if (!product) product = productsRepo.create({ name: { en: p.en, ar: p.ar } });
       product.name = { en: p.en, ar: p.ar };
       product.price = p.price;
+      product.imageUrl = p.imageUrl;
       product.course = p.course;
       product.isAvailable = true;
       product.category = categoriesByEn.get(p.category)!;
@@ -527,6 +600,10 @@ async function bootstrap() {
     }
 
     console.log('Seed finished successfully.');
+    console.log('Sample table links for customer menu:');
+    for (const [tableNo, table] of tablesByNo.entries()) {
+      console.log(`Table ${tableNo}: http://localhost:8081/?t=${table.qrCode}`);
+    }
     console.log('Credentials:');
     console.log('admin@pos.com / admin123');
     console.log('manager@pos.com / manager123');

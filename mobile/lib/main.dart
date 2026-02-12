@@ -6,6 +6,7 @@ import 'presentation/features/auth/login_screen.dart';
 import 'core/services/sync_service.dart';
 import 'core/services/kitchen_socket_service.dart';
 import 'core/providers/locale_provider.dart';
+import 'theme/pos_theme.dart';
 
 void main() {
   runApp(
@@ -28,10 +29,7 @@ class POSApp extends ConsumerWidget {
 
     return MaterialApp(
       title: 'POS System',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
+      theme: POSTheme.light(),
       locale: localeAsync.value ?? const Locale('en'),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [

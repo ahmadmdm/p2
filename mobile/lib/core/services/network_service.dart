@@ -1,14 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../config/api_config.dart';
 import '../../presentation/features/settings/settings_controller.dart';
 
 part 'network_service.g.dart';
-
-const _defaultApiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://localhost:3000',
-);
 
 @Riverpod(keepAlive: true)
 Dio networkService(NetworkServiceRef ref) {
@@ -16,7 +12,7 @@ Dio networkService(NetworkServiceRef ref) {
   final configuredBaseUrl = settingsAsync.value?['baseUrl']?.toString().trim();
   final baseUrl = (configuredBaseUrl != null && configuredBaseUrl.isNotEmpty)
       ? configuredBaseUrl
-      : _defaultApiBaseUrl;
+      : defaultApiBaseUrl();
 
   return Dio(BaseOptions(
     baseUrl: baseUrl,

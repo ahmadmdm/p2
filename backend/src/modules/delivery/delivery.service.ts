@@ -9,7 +9,8 @@ import {
 import { DeliveryProvider } from './interfaces/delivery-provider.interface';
 import { MockAggregatorProvider } from './providers/mock-aggregator.provider';
 import { UberEatsProvider } from './providers/uber-eats.provider';
-import { Order } from '../orders/order.entity';
+import { canTransitionOrderStatus } from '../orders/order-status.workflow';
+import { Order, OrderStatus, OrderType } from '../orders/order.entity';
 import { OrdersService } from '../orders/orders.service';
 
 @Injectable()
@@ -31,6 +32,29 @@ export class DeliveryService {
     this.logger.log(`Registered delivery provider: ${provider.name}`);
   }
 
+  private normalizeProviderName(value: string): string {
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private mapExternalStatusToOrderStatus(status: string): OrderStatus | null {
+    switch ((status || '').toUpperCase()) {
+      case 'ASSIGNED':
+      case 'ACCEPTED':
+      case 'PREPARING':
+        return OrderStatus.PREPARING;
+      case 'PICKED_UP':
+      case 'IN_TRANSIT':
+      case 'ON_THE_WAY':
+        return OrderStatus.ON_DELIVERY;
+      case 'DELIVERED':
+        return OrderStatus.DELIVERED;
+      case 'CANCELLED':
+        return OrderStatus.CANCELLED;
+      default:
+        return null;
+    }
+  }
+
   getProvider(name: string): DeliveryProvider {
     const provider = this.providers.get(name);
     if (!provider) {
@@ -40,11 +64,21 @@ export class DeliveryService {
   }
 
   async requestDelivery(providerName: string, order: Order): Promise<string> {
-    const provider = this.getProvider(providerName);
+    if (order.type !== OrderType.DELIVERY) {
+      throw new BadRequestException(
+        'Delivery can only be requested for delivery orders',
+      );
+    }
+    if (!order.deliveryAddress?.trim()) {
+      throw new BadRequestException('Delivery address is required');
+    }
+
+    const normalizedProvider = this.normalizeProviderName(providerName);
+    const provider = this.getProvider(normalizedProvider);
     const referenceId = await provider.requestDelivery(order);
 
     await this.ordersService.updateDeliveryInfo(order.id, {
-      deliveryProvider: providerName,
+      deliveryProvider: normalizedProvider,
       deliveryReferenceId: referenceId,
     });
 
@@ -76,12 +110,27 @@ export class DeliveryService {
   }
 
   async handleWebhook(providerName: string, payload: any) {
+    const normalizedProvider = this.normalizeProviderName(providerName);
+    this.getProvider(normalizedProvider);
+
+    if (!payload || typeof payload !== 'object') {
+      throw new BadRequestException('Invalid webhook payload');
+    }
+
     this.logger.log(
-      `Handling webhook for ${providerName}: ${JSON.stringify(payload)}`,
+      `Handling webhook for ${normalizedProvider}: ${JSON.stringify(payload)}`,
     );
 
     // Generic handling logic
     const { referenceId, status, orderId } = payload;
+    if (!orderId && !referenceId) {
+      throw new BadRequestException(
+        'Webhook payload must include orderId or referenceId',
+      );
+    }
+    if (!status || typeof status !== 'string') {
+      throw new BadRequestException('Webhook payload status is required');
+    }
 
     // Find order by referenceId or orderId
     let order: Order | null = null;
@@ -99,14 +148,44 @@ export class DeliveryService {
     }
 
     if (order) {
-      let orderStatus = 'PREPARING';
-      if (status === 'ASSIGNED') orderStatus = 'READY';
-      if (status === 'PICKED_UP') orderStatus = 'SERVED'; // Or DELIVERING if we add that status
-      if (status === 'DELIVERED') orderStatus = 'COMPLETED';
-      if (status === 'CANCELLED') orderStatus = 'CANCELLED';
+      const targetStatus = this.mapExternalStatusToOrderStatus(status);
+      if (!targetStatus) {
+        this.logger.warn(`Unhandled delivery webhook status: ${status}`);
+        return;
+      }
 
-      await this.ordersService.updateStatus(order.id, orderStatus as any);
-      this.logger.log(`Updated order ${order.id} to ${orderStatus}`);
+      if (order.status === targetStatus) {
+        return;
+      }
+
+      // If provider says delivered and order is still READY, move via ON_DELIVERY first.
+      if (
+        targetStatus === OrderStatus.DELIVERED &&
+        order.status === OrderStatus.READY
+      ) {
+        try {
+          if (canTransitionOrderStatus(order.status, OrderStatus.ON_DELIVERY)) {
+            order = await this.ordersService.updateStatus(
+              order.id,
+              OrderStatus.ON_DELIVERY,
+            );
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed intermediate status update for order ${order.id}: ${String(error)}`,
+          );
+        }
+      }
+
+      if (!canTransitionOrderStatus(order.status, targetStatus)) {
+        this.logger.warn(
+          `Skipping invalid delivery status transition for order ${order.id}: ${order.status} -> ${targetStatus}`,
+        );
+        return;
+      }
+
+      await this.ordersService.updateStatus(order.id, targetStatus);
+      this.logger.log(`Updated order ${order.id} to ${targetStatus}`);
     } else {
       this.logger.warn(
         `Order not found for webhook: ${JSON.stringify(payload)}`,

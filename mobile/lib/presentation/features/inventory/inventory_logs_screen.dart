@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import '../../../theme/pos_theme.dart';
 import 'inventory_controller.dart';
 
 class InventoryLogsScreen extends ConsumerWidget {
@@ -12,14 +13,17 @@ class InventoryLogsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final logsAsync = ref.watch(inventoryLogsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(ingredientId != null
-            ? AppLocalizations.of(context)!.ingredientLogs
-            : AppLocalizations.of(context)!.inventoryLogs),
-      ),
-      body: logsAsync.when(
-        data: (allLogs) {
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(ingredientId != null
+              ? AppLocalizations.of(context)!.ingredientLogs
+              : AppLocalizations.of(context)!.inventoryLogs),
+        ),
+        body: logsAsync.when(
+          data: (allLogs) {
           final logs = ingredientId != null
               ? allLogs.where((l) => l.ingredientId == ingredientId).toList()
               : allLogs;
@@ -55,7 +59,9 @@ class InventoryLogsScreen extends ConsumerWidget {
                   trailing: Text(
                     '${log.quantityChange > 0 ? '+' : ''}${log.quantityChange}',
                     style: TextStyle(
-                      color: log.quantityChange > 0 ? Colors.green : Colors.red,
+                      color: log.quantityChange > 0
+                          ? POSTheme.secondary
+                          : Colors.red,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -64,14 +70,15 @@ class InventoryLogsScreen extends ConsumerWidget {
               );
             },
           );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) =>
-            Center(child: Text('${AppLocalizations.of(context)!.error}: $e')),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => ref.refresh(inventoryLogsProvider),
-        child: const Icon(Icons.refresh),
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, s) =>
+              Center(child: Text('${AppLocalizations.of(context)!.error}: $e')),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => ref.refresh(inventoryLogsProvider),
+          child: const Icon(Icons.refresh),
+        ),
       ),
     );
   }

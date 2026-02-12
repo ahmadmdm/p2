@@ -5,6 +5,7 @@ import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/services/kitchen_socket_service.dart';
 import '../../../domain/entities/restaurant_table.dart';
+import '../../../theme/pos_theme.dart';
 import 'tables_controller.dart';
 
 import 'widgets/table_order_details_dialog.dart';
@@ -42,39 +43,43 @@ class _FloorPlanScreenState extends ConsumerState<FloorPlanScreen> {
 
     final tablesAsync = ref.watch(tablesControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.floorPlan),
-        actions: [
-          IconButton(
-            icon: Icon(_isEditMode ? Icons.check : Icons.edit),
-            onPressed: () {
-              if (_isEditMode) {
-                // Save changes
-                final tables = ref.read(tablesControllerProvider).value;
-                if (tables != null) {
-                  ref
-                      .read(tablesControllerProvider.notifier)
-                      .saveLayout(tables);
-                }
-              }
-              setState(() {
-                _isEditMode = !_isEditMode;
-              });
-            },
-          ),
-          if (_isEditMode)
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.floorPlan),
+          actions: [
             IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: _addNewTable,
+              icon: Icon(_isEditMode ? Icons.check_rounded : Icons.edit_rounded),
+              onPressed: () {
+                if (_isEditMode) {
+                  // Save changes
+                  final tables = ref.read(tablesControllerProvider).value;
+                  if (tables != null) {
+                    ref
+                        .read(tablesControllerProvider.notifier)
+                        .saveLayout(tables);
+                  }
+                }
+                setState(() {
+                  _isEditMode = !_isEditMode;
+                });
+              },
             ),
-        ],
-      ),
-      body: tablesAsync.when(
-        data: (tables) => _buildFloorPlan(context, tables),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            Center(child: Text('${AppLocalizations.of(context)!.error}: $err')),
+            if (_isEditMode)
+              IconButton(
+                icon: const Icon(Icons.add_rounded),
+                onPressed: _addNewTable,
+              ),
+          ],
+        ),
+        body: tablesAsync.when(
+          data: (tables) => _buildFloorPlan(context, tables),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(
+              child: Text('${AppLocalizations.of(context)!.error}: $err')),
+        ),
       ),
     );
   }
@@ -85,7 +90,7 @@ class _FloorPlanScreenState extends ConsumerState<FloorPlanScreen> {
         return Stack(
           children: [
             // Grid background (optional)
-            Container(color: Colors.grey[200]),
+            Container(color: POSTheme.surfaceTint.withValues(alpha: 0.45)),
 
             // Tables
             ...tables.map((table) => _buildTableWidget(table)),
@@ -137,7 +142,7 @@ class _FloorPlanScreenState extends ConsumerState<FloorPlanScreen> {
                     : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 4,
                     offset: const Offset(2, 2),
                   )

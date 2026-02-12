@@ -13,6 +13,12 @@ import {
 import { Type } from 'class-transformer';
 import { OrderSource, PaymentMethod, OrderType } from '../order.entity';
 
+class OrderItemModifierDto {
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+}
+
 class OrderItemDto {
   @IsString()
   @IsNotEmpty()
@@ -40,6 +46,12 @@ class OrderItemDto {
   @IsNumber()
   @IsOptional()
   taxAmount?: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemModifierDto)
+  @IsOptional()
+  modifiers?: OrderItemModifierDto[];
 }
 
 export class CreateOrderDto {

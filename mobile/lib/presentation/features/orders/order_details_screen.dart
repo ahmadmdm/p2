@@ -6,6 +6,7 @@ import '../../../core/services/printing_service.dart';
 import '../../../domain/entities/order.dart';
 import '../../../domain/entities/order_status.dart';
 import '../../../domain/entities/refund.dart';
+import '../../../theme/pos_theme.dart';
 import 'orders_history_controller.dart';
 
 class OrderDetailsScreen extends ConsumerStatefulWidget {
@@ -58,14 +59,17 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
     final canPrintReceipt = order.paymentStatus == 'PAID';
     // Usually void is for active orders. If completed, use refund.
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!
-            .orderNumber(order.id.substring(0, 8))),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!
+              .orderNumber(order.id.substring(0, 8))),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInfoRow(
@@ -107,7 +111,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                       fontSize: 18, fontWeight: FontWeight.bold)),
               const Divider(),
               ...order.refunds!.map((refund) => Card(
-                    color: Colors.red.shade50,
+                    color: Colors.red.shade50.withValues(alpha: 0.9),
                     child: ListTile(
                       title: Text(
                           '${AppLocalizations.of(context)!.refundLabel(refund.amount)} - ${refund.status}'),
@@ -116,6 +120,9 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                       trailing: refund.status == 'PENDING'
                           ? ElevatedButton(
                               onPressed: () => _approveRefund(refund),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: POSTheme.secondary,
+                              ),
                               child:
                                   Text(AppLocalizations.of(context)!.approve),
                             )
@@ -139,7 +146,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                     icon: const Icon(Icons.replay),
                     label: Text(AppLocalizations.of(context)!.requestRefund),
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange),
+                        backgroundColor: POSTheme.accent),
                   ),
                 if (canVoid)
                   ElevatedButton.icon(
@@ -152,6 +159,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
               ],
             ),
           ],
+        ),
         ),
       ),
     );

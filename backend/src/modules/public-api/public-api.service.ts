@@ -68,6 +68,15 @@ export class PublicApiService {
 
   async createOrder(token: string, orderData: any): Promise<Order> {
     const table = await this.validateTableToken(token);
+    const existingOrder = await this.ordersService.findActiveOrderForTable(
+      table.id,
+    );
+    if (existingOrder) {
+      throw new BadRequestException(
+        `Table already has an active order (${existingOrder.id}). Use add-items instead.`,
+      );
+    }
+
     const items = this.normalizePublicItems(orderData.items || []);
     if (items.length === 0) {
       throw new BadRequestException('Order must contain at least one item');
@@ -122,6 +131,12 @@ export class PublicApiService {
 
   async requestBill(token: string) {
     const table = await this.validateTableToken(token);
+    const activeOrder = await this.ordersService.findActiveOrderForTable(
+      table.id,
+    );
+    if (!activeOrder) {
+      throw new BadRequestException('No active order found for this table');
+    }
     this.ordersService.notifyBillRequest(table);
     return { success: true, message: 'Bill requested' };
   }

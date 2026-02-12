@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
+import '../../../core/config/api_config.dart';
 import '../../../core/services/printing_service.dart';
 import 'settings_controller.dart';
 import '../../../core/services/sync_service.dart';
@@ -23,7 +24,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _timeoutController = TextEditingController();
   final _copiesController = TextEditingController();
   final _baseUrlController = TextEditingController();
+  final _currencyCodeController = TextEditingController();
+  final _currencySymbolController = TextEditingController();
+  final _currencyDecimalsController = TextEditingController();
   String _paperSize = '80mm';
+  String _defaultDeliveryProvider = 'internal';
   bool _autoPrintReceipt = true;
   bool _autoPrintKitchen = true;
   bool _initialized = false;
@@ -37,6 +42,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _portController.text = settings['printerPort'].toString();
       _paperSize = settings['paperSize'];
       _baseUrlController.text = settings['baseUrl'] ?? '';
+      _currencyCodeController.text =
+          (settings['currencyCode'] ?? 'USD').toString();
+      _currencySymbolController.text =
+          (settings['currencySymbol'] ?? r'$').toString();
+      _currencyDecimalsController.text =
+          (settings['currencyDecimals'] ?? 2).toString();
+      _defaultDeliveryProvider =
+          (settings['defaultDeliveryProvider'] ?? 'internal').toString();
     }
   }
 
@@ -48,6 +61,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _timeoutController.dispose();
     _copiesController.dispose();
     _baseUrlController.dispose();
+    _currencyCodeController.dispose();
+    _currencySymbolController.dispose();
+    _currencyDecimalsController.dispose();
     super.dispose();
   }
 
@@ -63,6 +79,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _autoPrintReceipt = settings['autoPrintReceipt'] as bool? ?? true;
     _autoPrintKitchen = settings['autoPrintKitchen'] as bool? ?? true;
     _baseUrlController.text = (settings['baseUrl'] ?? '').toString();
+    _currencyCodeController.text =
+        (settings['currencyCode'] ?? 'USD').toString();
+    _currencySymbolController.text =
+        (settings['currencySymbol'] ?? r'$').toString();
+    _currencyDecimalsController.text =
+        (settings['currencyDecimals'] ?? 2).toString();
+    _defaultDeliveryProvider =
+        (settings['defaultDeliveryProvider'] ?? 'internal').toString();
     _initialized = true;
   }
 
@@ -95,6 +119,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final timeoutMs = int.tryParse(_timeoutController.text) ?? 5000;
     final copies = int.tryParse(_copiesController.text) ?? 1;
     final baseUrl = _baseUrlController.text.trim();
+    final currencyCode = _currencyCodeController.text.trim().toUpperCase();
+    final currencySymbol = _currencySymbolController.text.trim();
+    final currencyDecimals =
+        int.tryParse(_currencyDecimalsController.text) ?? 2;
 
     if (port <= 0 || port > 65535) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -137,6 +165,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
       return;
     }
+    if (currencyCode.isEmpty || currencyCode.length > 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Currency code must be 1-5 characters.')),
+      );
+      return;
+    }
+    if (currencySymbol.isEmpty || currencySymbol.length > 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Currency symbol must be 1-3 characters.')),
+      );
+      return;
+    }
+    if (currencyDecimals < 0 || currencyDecimals > 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Currency decimals must be between 0 and 3.')),
+      );
+      return;
+    }
 
     await ref.read(settingsControllerProvider.notifier).updateSettings(
           printerIp: ip,
@@ -148,6 +196,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           autoPrintReceipt: _autoPrintReceipt,
           autoPrintKitchen: _autoPrintKitchen,
           baseUrl: baseUrl,
+          currencyCode: currencyCode,
+          currencySymbol: currencySymbol,
+          currencyDecimals: currencyDecimals,
+          defaultDeliveryProvider: _defaultDeliveryProvider,
         );
 
     if (!mounted) return;
@@ -259,10 +311,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _baseUrlController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'API Base URL',
-                    hintText: 'http://localhost:3000',
+                    hintText: defaultApiBaseUrl(),
                   ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _currencyCodeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Currency Code',
+                    hintText: 'USD',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _currencySymbolController,
+                        decoration: const InputDecoration(
+                          labelText: 'Currency Symbol',
+                          hintText: r'$',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _currencyDecimalsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Currency Decimals',
+                          hintText: '2',
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: _defaultDeliveryProvider,
+                  decoration: const InputDecoration(
+                    labelText: 'Default Delivery Provider',
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'internal',
+                      child: Text('Internal Driver'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'uber-eats',
+                      child: Text('Uber Eats'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'mock-aggregator',
+                      child: Text('Mock Aggregator'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _defaultDeliveryProvider = value);
+                  },
                 ),
                 const Divider(height: 40),
                 Text(AppLocalizations.of(context)!.printerSettings,

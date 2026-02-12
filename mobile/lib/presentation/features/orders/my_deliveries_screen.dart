@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
 import '../../../domain/entities/order.dart';
 import '../../../domain/entities/order_status.dart';
+import '../../../theme/pos_theme.dart';
 import 'my_deliveries_controller.dart';
 
 class MyDeliveriesScreen extends ConsumerWidget {
@@ -12,20 +13,23 @@ class MyDeliveriesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final deliveriesAsync = ref.watch(myDeliveriesControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.myDeliveries),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.read(myDeliveriesControllerProvider.notifier).refresh();
-            },
-          ),
-        ],
-      ),
-      body: deliveriesAsync.when(
-        data: (orders) {
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.myDeliveries),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () {
+                ref.read(myDeliveriesControllerProvider.notifier).refresh();
+              },
+            ),
+          ],
+        ),
+        body: deliveriesAsync.when(
+          data: (orders) {
           if (orders.isEmpty) {
             return Center(
                 child:
@@ -38,10 +42,11 @@ class MyDeliveriesScreen extends ConsumerWidget {
               return _DeliveryOrderCard(order: order);
             },
           );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) =>
-            Center(child: Text('${AppLocalizations.of(context)!.error}: $e')),
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, s) =>
+              Center(child: Text('${AppLocalizations.of(context)!.error}: $e')),
+        ),
       ),
     );
   }
@@ -76,7 +81,7 @@ class _DeliveryOrderCard extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.2),
+                    color: statusColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: statusColor),
                   ),
@@ -139,7 +144,8 @@ class _DeliveryOrderCard extends ConsumerWidget {
           icon: const Icon(Icons.directions_bike),
           label: Text(AppLocalizations.of(context)!.startDelivery),
           style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue, foregroundColor: Colors.white),
+              backgroundColor: POSTheme.secondary,
+              foregroundColor: Colors.white),
           onPressed: () {
             ref
                 .read(myDeliveriesControllerProvider.notifier)
@@ -154,7 +160,8 @@ class _DeliveryOrderCard extends ConsumerWidget {
           icon: const Icon(Icons.check_circle),
           label: Text(AppLocalizations.of(context)!.markAsDelivered),
           style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green, foregroundColor: Colors.white),
+              backgroundColor: POSTheme.primary,
+              foregroundColor: Colors.white),
           onPressed: () {
             ref
                 .read(myDeliveriesControllerProvider.notifier)

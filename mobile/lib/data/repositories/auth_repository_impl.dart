@@ -28,6 +28,9 @@ class AuthRepositoryImpl implements AuthRepository {
       final result = await _remoteDataSource.login(email, password);
       final userData = result['user'];
       final token = result['access_token'];
+      if (userData is! Map<String, dynamic> || token is! String) {
+        return const Left('Invalid credentials');
+      }
 
       final user = domain.User(
         id: userData['id'],
@@ -67,7 +70,8 @@ class AuthRepositoryImpl implements AuthRepository {
         email: user.email,
         name: user.name,
         role: user.role,
-        accessToken: '', // Offline login implies no token or token needs refreshing
+        accessToken:
+            '', // Offline login implies no token or token needs refreshing
         pinCode: user.pinCode,
       ));
     } catch (e) {

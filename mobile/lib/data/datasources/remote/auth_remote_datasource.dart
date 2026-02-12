@@ -21,9 +21,16 @@ class AuthRemoteDataSource {
         'email': email,
         'password': password,
       });
-      return response.data;
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Unexpected login response');
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Login failed');
+      final data = e.response?.data;
+      if (data is Map<String, dynamic> && data['message'] != null) {
+        throw Exception(data['message'].toString());
+      }
+      throw Exception('Unable to connect to server');
     }
   }
 }

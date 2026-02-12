@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import '../../../theme/pos_theme.dart';
 import 'refunds_approval_controller.dart';
 
 class RefundsApprovalScreen extends ConsumerWidget {
@@ -11,12 +12,15 @@ class RefundsApprovalScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final refundsAsync = ref.watch(pendingRefundsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.pendingRefunds),
-      ),
-      body: refundsAsync.when(
-        data: (refunds) {
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.pendingRefunds),
+        ),
+        body: refundsAsync.when(
+          data: (refunds) {
           if (refunds.isEmpty) {
             return Center(
                 child: Text(AppLocalizations.of(context)!.noPendingRefunds));
@@ -59,7 +63,7 @@ class RefundsApprovalScreen extends ConsumerWidget {
                           _approveRefund(context, ref, refund.id);
                         },
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green),
+                            backgroundColor: POSTheme.secondary),
                         child: Text(AppLocalizations.of(context)!.approve),
                       ),
                     ],
@@ -68,10 +72,11 @@ class RefundsApprovalScreen extends ConsumerWidget {
               );
             },
           );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            Center(child: Text('${AppLocalizations.of(context)!.error}: $err')),
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(
+              child: Text('${AppLocalizations.of(context)!.error}: $err')),
+        ),
       ),
     );
   }

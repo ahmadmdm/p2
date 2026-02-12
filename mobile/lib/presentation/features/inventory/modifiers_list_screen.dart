@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
 import '../home/home_providers.dart';
 import '../../../domain/entities/modifier.dart';
+import '../../../theme/pos_theme.dart';
 import 'recipes_screen.dart';
 
 class ModifiersListScreen extends ConsumerWidget {
@@ -12,8 +13,10 @@ class ModifiersListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final productsAsync = ref.watch(productsStreamProvider);
 
-    return productsAsync.when(
-      data: (products) {
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: productsAsync.when(
+        data: (products) {
         // Extract all modifiers
         final allModifiers = <String, ModifierItem>{};
         for (var product in products) {
@@ -64,27 +67,32 @@ class ModifiersListScreen extends ConsumerWidget {
           itemCount: modifiersList.length,
           itemBuilder: (context, index) {
             final modifier = modifiersList[index];
-            return ListTile(
-              title: Text(modifier.nameEn),
-              subtitle: Text(modifier.nameAr),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ModifierRecipesScreen(
-                      modifierId: modifier.id,
-                      modifierName: modifier.nameEn,
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: ListTile(
+                title: Text(modifier.nameEn),
+                subtitle: Text(modifier.nameAr),
+                trailing:
+                    const Icon(Icons.chevron_right, color: POSTheme.secondary),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ModifierRecipesScreen(
+                        modifierId: modifier.id,
+                        modifierName: modifier.nameEn,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           },
         );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) =>
-          Center(child: Text('${AppLocalizations.of(context)!.error}: $e')),
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, s) =>
+            Center(child: Text('${AppLocalizations.of(context)!.error}: $e')),
+      ),
     );
   }
 }

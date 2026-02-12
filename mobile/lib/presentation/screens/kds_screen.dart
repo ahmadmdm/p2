@@ -17,6 +17,134 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
   String? _selectedStationId;
   late TabController _tabController;
 
+  String _stationIdOf(dynamic station) {
+    if (station is Map<String, dynamic>) return station['id']?.toString() ?? '';
+    if (station is Map) return station['id']?.toString() ?? '';
+    try {
+      return (station.id as Object?)?.toString() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _stationNameOf(dynamic station) {
+    if (station is Map<String, dynamic>) {
+      return station['name']?.toString() ?? 'Unknown';
+    }
+    if (station is Map) return station['name']?.toString() ?? 'Unknown';
+    try {
+      return (station.name as Object?)?.toString() ?? 'Unknown';
+    } catch (_) {
+      return 'Unknown';
+    }
+  }
+
+  String _orderIdOf(dynamic order) {
+    if (order is Order) return order.id;
+    if (order is Map<String, dynamic>) return order['id']?.toString() ?? '';
+    if (order is Map) return order['id']?.toString() ?? '';
+    return '';
+  }
+
+  String? _orderTableOf(dynamic order) {
+    if (order is Order) return order.tableNumber;
+    if (order is Map<String, dynamic>) {
+      final table = order['table'];
+      if (table is Map<String, dynamic>)
+        return table['tableNumber']?.toString();
+      return order['tableNumber']?.toString();
+    }
+    if (order is Map) {
+      final table = order['table'];
+      if (table is Map) return table['tableNumber']?.toString();
+      return order['tableNumber']?.toString();
+    }
+    return null;
+  }
+
+  DateTime _orderCreatedAtOf(dynamic order) {
+    if (order is Order) return order.createdAt;
+    if (order is Map<String, dynamic>) {
+      final raw = order['createdAt']?.toString();
+      if (raw != null) return DateTime.tryParse(raw) ?? DateTime.now();
+    }
+    if (order is Map) {
+      final raw = order['createdAt']?.toString();
+      if (raw != null) return DateTime.tryParse(raw) ?? DateTime.now();
+    }
+    return DateTime.now();
+  }
+
+  List<dynamic> _orderItemsOf(dynamic order) {
+    if (order is Order) return order.items;
+    if (order is Map<String, dynamic>)
+      return (order['items'] as List?) ?? const [];
+    if (order is Map) return (order['items'] as List?) ?? const [];
+    return const [];
+  }
+
+  OrderStatus _orderStatusOf(dynamic order) {
+    if (order is Order) return order.status;
+    if (order is Map<String, dynamic>) {
+      final raw = order['status']?.toString() ?? '';
+      return OrderStatus.values.firstWhere(
+        (e) => e.name == raw,
+        orElse: () => OrderStatus.PENDING,
+      );
+    }
+    if (order is Map) {
+      final raw = order['status']?.toString() ?? '';
+      return OrderStatus.values.firstWhere(
+        (e) => e.name == raw,
+        orElse: () => OrderStatus.PENDING,
+      );
+    }
+    return OrderStatus.PENDING;
+  }
+
+  String _itemIdOf(dynamic item) {
+    if (item is OrderItem) return item.id;
+    if (item is Map<String, dynamic>) return item['id']?.toString() ?? '';
+    if (item is Map) return item['id']?.toString() ?? '';
+    return '';
+  }
+
+  String _itemStatusOf(dynamic item) {
+    if (item is OrderItem) return item.status ?? 'PENDING';
+    if (item is Map<String, dynamic>)
+      return item['status']?.toString() ?? 'PENDING';
+    if (item is Map) return item['status']?.toString() ?? 'PENDING';
+    return 'PENDING';
+  }
+
+  int _itemQtyOf(dynamic item) {
+    if (item is OrderItem) return item.quantity;
+    if (item is Map<String, dynamic>)
+      return (item['quantity'] as num?)?.toInt() ?? 1;
+    if (item is Map) return (item['quantity'] as num?)?.toInt() ?? 1;
+    return 1;
+  }
+
+  String _itemNameOf(dynamic item) {
+    if (item is OrderItem) return item.product.nameEn;
+    if (item is Map<String, dynamic>) {
+      final product = item['product'];
+      if (product is Map<String, dynamic>) {
+        final name = product['name'];
+        if (name is Map<String, dynamic>)
+          return name['en']?.toString() ?? 'Item';
+      }
+    }
+    if (item is Map) {
+      final product = item['product'];
+      if (product is Map) {
+        final name = product['name'];
+        if (name is Map) return name['en']?.toString() ?? 'Item';
+      }
+    }
+    return 'Item';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -53,8 +181,8 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
                   child: Text('All Stations'),
                 ),
                 ...stations.map((s) => DropdownMenuItem<String>(
-                      value: s['id'],
-                      child: Text(s['name']),
+                      value: _stationIdOf(s),
+                      child: Text(_stationNameOf(s)),
                     )),
               ],
               onChanged: (value) {
@@ -99,12 +227,13 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
     );
   }
 
-  Widget _buildOrderList(List<Order> orders, OrderStatus status) {
+  Widget _buildOrderList(List<dynamic> orders, OrderStatus status) {
     // Filter orders that have items in this status OR are in this status overall
     // Actually, KDS usually shows orders in their "most relevant" column.
     // Let's filter by Order Status for the column, but inside show items.
 
-    final filteredOrders = orders.where((o) => o.status == status).toList();
+    final filteredOrders =
+        orders.where((o) => _orderStatusOf(o) == status).toList();
 
     return ListView.builder(
       padding: const EdgeInsets.all(8),
@@ -121,19 +250,21 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Table: ${order.tableNumber ?? 'N/A'}',
+                    Text('Table: ${_orderTableOf(order) ?? 'N/A'}',
                         style: Theme.of(context).textTheme.titleLarge),
-                    Text(
-                        '#${order.id.length > 4 ? order.id.substring(0, 4) : order.id}'),
+                    Text(() {
+                      final id = _orderIdOf(order);
+                      return '#${id.length > 4 ? id.substring(0, 4) : id}';
+                    }()),
                   ],
                 ),
                 const Divider(),
-                ...order.items.map((item) => _buildOrderItem(item)),
+                ..._orderItemsOf(order).map((item) => _buildOrderItem(item)),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    _buildTimeAgo(order.createdAt),
+                    _buildTimeAgo(_orderCreatedAtOf(order)),
                   ],
                 ),
               ],
@@ -157,16 +288,16 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
     return Text(timeStr, style: const TextStyle(color: Colors.grey));
   }
 
-  Widget _buildOrderItem(OrderItem item) {
+  Widget _buildOrderItem(dynamic item) {
     // Check if this item belongs to selected station
     // If _selectedStationId is set, and item.product.stationId != _selectedStationId, maybe dim it or hide it?
     // Current OrderItem entity in Mobile might not have nested Product->Station loaded.
     // Let's assume we show all for now.
 
     Color statusColor = Colors.grey;
-    if (item.status == 'PENDING') statusColor = Colors.orange;
-    if (item.status == 'PREPARING') statusColor = Colors.blue;
-    if (item.status == 'READY') statusColor = Colors.green;
+    if (_itemStatusOf(item) == 'PENDING') statusColor = Colors.orange;
+    if (_itemStatusOf(item) == 'PREPARING') statusColor = Colors.blue;
+    if (_itemStatusOf(item) == 'READY') statusColor = Colors.green;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -174,7 +305,7 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
         children: [
           Expanded(
             child: Text(
-              '${item.quantity}x ${item.product.nameEn}',
+              '${_itemQtyOf(item)}x ${_itemNameOf(item)}',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -189,7 +320,7 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                item.status ?? 'PENDING',
+                _itemStatusOf(item),
                 style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
@@ -199,19 +330,20 @@ class _KdsScreenState extends ConsumerState<KdsScreen>
     );
   }
 
-  void _advanceItemStatus(OrderItem item) {
+  void _advanceItemStatus(dynamic item) {
+    final currentStatus = _itemStatusOf(item);
     String nextStatus = 'PENDING';
-    if (item.status == 'PENDING') {
+    if (currentStatus == 'PENDING') {
       nextStatus = 'PREPARING';
-    } else if (item.status == 'PREPARING')
+    } else if (currentStatus == 'PREPARING')
       nextStatus = 'READY';
-    else if (item.status == 'READY')
+    else if (currentStatus == 'READY')
       nextStatus = 'SERVED';
     else
       return; // Already served
 
     ref
         .read(kitchenControllerProvider(_selectedStationId).notifier)
-        .updateItemStatus(item.id, nextStatus);
+        .updateItemStatus(_itemIdOf(item), nextStatus);
   }
 }

@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import { Ingredient } from './ingredient.entity';
 import { InventoryItem } from './inventory-item.entity';
 import { RecipeItem } from './recipe-item.entity';
 import { Product } from '../catalog/product.entity';
+import { ModifierItem } from '../catalog/modifier-item.entity';
 import { Warehouse } from './warehouse.entity';
 import { InventoryLog } from './inventory-log.entity';
 
@@ -19,6 +20,8 @@ export class InventoryService {
     private recipesRepo: Repository<RecipeItem>,
     @InjectRepository(Product)
     private productsRepo: Repository<Product>,
+    @InjectRepository(ModifierItem)
+    private modifiersRepo: Repository<ModifierItem>,
     @InjectRepository(Warehouse)
     private warehousesRepo: Repository<Warehouse>,
     @InjectRepository(InventoryLog)
@@ -59,6 +62,14 @@ export class InventoryService {
     referenceId?: string,
     notes?: string,
   ) {
+    const normalizedChange = Number(quantityChange);
+    if (Number.isNaN(normalizedChange) || !Number.isFinite(normalizedChange)) {
+      throw new BadRequestException('Quantity change must be a valid number');
+    }
+    if (normalizedChange === 0) {
+      throw new BadRequestException('Quantity change cannot be zero');
+    }
+
     const repo = manager
       ? manager.getRepository(InventoryItem)
       : this.inventoryRepo;
@@ -102,14 +113,14 @@ export class InventoryService {
     }
 
     const oldQuantity = Number(stock.quantity);
-    stock.quantity = oldQuantity + Number(quantityChange);
+    stock.quantity = oldQuantity + normalizedChange;
     const savedStock = await repo.save(stock);
 
     // Log
     const log = logsRepo.create({
       ingredient: { id: ingredientId },
       warehouse: { id: warehouse.id },
-      quantityChange,
+      quantityChange: normalizedChange,
       reason,
       referenceId,
       notes,
@@ -127,6 +138,10 @@ export class InventoryService {
     ingredientId: string,
     quantity: number,
   ) {
+    if (Number(quantity) <= 0 || Number.isNaN(Number(quantity))) {
+      throw new BadRequestException('Recipe quantity must be greater than zero');
+    }
+
     const product = await this.productsRepo.findOneBy({ id: productId });
     const ingredient = await this.ingredientsRepo.findOneBy({
       id: ingredientId,
@@ -148,34 +163,23 @@ export class InventoryService {
     ingredientId: string,
     quantity: number,
   ) {
-    // We need to inject ModifierItem repo or use manager, but we can't inject it easily without module circular dep.
-    // For now, let's assume we can query it via manager or use a simpler approach if module structure allows.
-    // Ideally InventoryModule should import CatalogModule.
-    // But CatalogModule imports InventoryModule? Circular.
-    // Let's rely on passed in IDs or query using raw query if needed, OR just assume valid ID if we can't verify easily.
-    // Better: use EntityManager to find generic entity.
+    if (Number(quantity) <= 0 || Number.isNaN(Number(quantity))) {
+      throw new BadRequestException('Recipe quantity must be greater than zero');
+    }
 
-    // Actually, we can use the repository if we inject it. But let's check module.
-    // InventoryModule imports Product, but not ModifierItem.
-    // I should add ModifierItem to InventoryModule imports.
-    return this.recipesRepo.manager.transaction(async (manager) => {
-      const modifier = await manager
-        .getRepository('ModifierItem')
-        .findOneBy({ id: modifierId });
-      const ingredient = await this.ingredientsRepo.findOneBy({
-        id: ingredientId,
-      });
+    const modifier = await this.modifiersRepo.findOneBy({ id: modifierId });
+    const ingredient = await this.ingredientsRepo.findOneBy({ id: ingredientId });
 
-      if (!modifier || !ingredient)
-        throw new NotFoundException('Modifier or Ingredient not found');
+    if (!modifier || !ingredient) {
+      throw new NotFoundException('Modifier or Ingredient not found');
+    }
 
-      const recipeItem = this.recipesRepo.create({
-        modifierItem: modifier, // This needs TypeORM to know about ModifierItem
-        ingredient,
-        quantity,
-      });
-      return manager.save(recipeItem);
+    const recipeItem = this.recipesRepo.create({
+      modifierItem: modifier,
+      ingredient,
+      quantity,
     });
+    return this.recipesRepo.save(recipeItem);
   }
 
   async getProductRecipe(productId: string) {
@@ -346,6 +350,10 @@ export class InventoryService {
     amount: number,
     manager: EntityManager,
   ) {
+    if (Number(amount) <= 0 || Number.isNaN(Number(amount))) {
+      throw new BadRequestException('Deduction amount must be greater than zero');
+    }
+
     const inventoryRepo = manager.getRepository(InventoryItem);
     const ingredientRepo = manager.getRepository(Ingredient);
     const logsRepo = manager.getRepository(InventoryLog);
@@ -364,19 +372,19 @@ export class InventoryService {
     });
 
     if (stock) {
+      if (Number(stock.quantity) < amount) {
+        throw new BadRequestException(
+          `Insufficient stock for ingredient ${ingredientId}`,
+        );
+      }
       stock.quantity = Number(stock.quantity) - amount;
       await inventoryRepo.save(stock);
     } else {
-      // Create negative stock entry
       const ingredient = await ingredientRepo.findOneBy({ id: ingredientId });
-      if (ingredient) {
-        const newStock = inventoryRepo.create({
-          ingredient,
-          warehouse: mainWarehouse,
-          quantity: -amount,
-        });
-        await inventoryRepo.save(newStock);
+      if (!ingredient) {
+        throw new NotFoundException(`Ingredient ${ingredientId} not found`);
       }
+      throw new BadRequestException(`Insufficient stock for ingredient ${ingredientId}`);
     }
 
     // Log

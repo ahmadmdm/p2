@@ -19,6 +19,17 @@ export default function OrderStatus() {
           params: { t: tableId },
         });
         setOrder(res.data);
+
+        if (
+          res.data?.status === 'COMPLETED' ||
+          res.data?.status === 'CANCELLED' ||
+          res.data?.status === 'VOIDED' ||
+          res.data?.status === 'REFUNDED'
+        ) {
+          localStorage.removeItem(`activeOrder:${tableId}`);
+        } else if (res.data?.id) {
+          localStorage.setItem(`activeOrder:${tableId}`, res.data.id);
+        }
       } catch (err) {
         console.error('Failed to fetch order', err);
       } finally {

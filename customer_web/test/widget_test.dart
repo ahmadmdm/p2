@@ -10,6 +10,6 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Scan QR Code to order'), findsOneWidget);
+    expect(find.text('QR Dining Experience'), findsOneWidget);
   });
 }

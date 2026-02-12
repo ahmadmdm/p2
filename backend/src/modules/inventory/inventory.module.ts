@@ -6,6 +6,7 @@ import { Ingredient } from './ingredient.entity';
 import { InventoryItem } from './inventory-item.entity';
 import { RecipeItem } from './recipe-item.entity';
 import { Product } from '../catalog/product.entity';
+import { ModifierItem } from '../catalog/modifier-item.entity';
 import { Warehouse } from './warehouse.entity';
 import { WarehouseController } from './warehouse.controller';
 import { InventoryLog } from './inventory-log.entity';
@@ -17,6 +18,7 @@ import { InventoryLog } from './inventory-log.entity';
       InventoryItem,
       RecipeItem,
       Product,
+      ModifierItem,
       Warehouse,
       InventoryLog,
     ]),

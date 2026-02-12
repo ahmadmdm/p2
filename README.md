@@ -6,7 +6,8 @@ A premium, scalable Restaurant/Coffee Shop POS system built with Flutter and Nes
 
 *   `backend/`: NestJS API (PostgreSQL, Redis)
 *   `mobile/`: Flutter App (iPad/Tablet focus, Offline-first)
-*   `customer_web/`: Flutter Web App for QR Table Ordering
+*   `customer_web/`: Flutter Web App for QR Table Ordering (production customer app)
+*   `archive/web-customer-legacy/`: React + Vite legacy customer app (archived)
 *   `docker-compose.yml`: Infrastructure services
 
 ## Prerequisites
@@ -48,6 +49,14 @@ flutter run -d windows # or ipad/android
 cd customer_web
 flutter pub get
 flutter run -d chrome
+```
+
+Archived legacy React customer app:
+
+```bash
+cd archive/web-customer-legacy
+npm install
+npm run dev
 ```
 
 After launch, open the app with a table token from the QR code, for example:
@@ -94,3 +103,12 @@ npm run seed
 1.  Enhance Report Exports (PDF/Excel).
 2.  Finalize Delivery/Driver flow.
 3.  Implement Lightweight Captcha for Public API.
+
+## Migration / Deprecation
+
+- **Archived on February 12, 2026**: `web-customer/` was moved to `archive/web-customer-legacy/`.
+- **Active path**: `customer_web/` is the only production customer web app.
+- **Removal plan**:
+  1. Keep `archive/web-customer-legacy/` read-only for reference during transition.
+  2. Do not add new features or fixes to the archived app.
+  3. Remove `archive/web-customer-legacy/` after the transition window and historical review are complete.

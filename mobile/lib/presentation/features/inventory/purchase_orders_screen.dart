@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_mobile/l10n/app_localizations.dart';
 import 'inventory_controller.dart';
 import '../../../../domain/entities/purchase_order.dart';
+import '../../../theme/pos_theme.dart';
 
 class PurchaseOrdersScreen extends ConsumerWidget {
   const PurchaseOrdersScreen({super.key});
@@ -11,13 +12,16 @@ class PurchaseOrdersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final posAsync = ref.watch(purchaseOrdersControllerProvider);
 
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreatePODialog(context, ref),
-        child: const Icon(Icons.add),
-      ),
-      body: posAsync.when(
-        data: (pos) {
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showCreatePODialog(context, ref),
+          child: const Icon(Icons.add),
+        ),
+        body: posAsync.when(
+          data: (pos) {
           if (pos.isEmpty) {
             return Center(
                 child: Text(AppLocalizations.of(context)!.noPurchaseOrders));
@@ -29,6 +33,10 @@ class PurchaseOrdersScreen extends ConsumerWidget {
               return Card(
                 margin: const EdgeInsets.all(8.0),
                 child: ListTile(
+                  leading: const Icon(
+                    Icons.local_shipping_rounded,
+                    color: POSTheme.secondary,
+                  ),
                   title: Text(AppLocalizations.of(context)!.poNumber(
                       po.id.substring(0, 8),
                       po.supplier?.name ?? "Unknown Supplier")),
@@ -47,10 +55,11 @@ class PurchaseOrdersScreen extends ConsumerWidget {
               );
             },
           );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            Center(child: Text('${AppLocalizations.of(context)!.error}: $err')),
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(
+              child: Text('${AppLocalizations.of(context)!.error}: $err')),
+        ),
       ),
     );
   }
@@ -91,8 +100,9 @@ class _CreatePODialogState extends ConsumerState<CreatePODialog> {
       title: Text(AppLocalizations.of(context)!.createPO),
       content: suppliersAsync.when(
         data: (suppliers) {
-          if (suppliers.isEmpty)
+          if (suppliers.isEmpty) {
             return Text(AppLocalizations.of(context)!.noSuppliersAvailable);
+          }
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -152,7 +162,10 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
             orElse: () => po) ??
         po;
 
-    return Scaffold(
+    return Container(
+      decoration: POSTheme.backgroundGradient(),
+      child: Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
           title:
               Text(AppLocalizations.of(context)!.poDetails(currentPO.status))),
@@ -209,6 +222,7 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
               child: const Icon(Icons.add_shopping_cart),
             )
           : null,
+      ),
     );
   }
 
@@ -241,8 +255,9 @@ class _AddPOItemDialogState extends ConsumerState<AddPOItemDialog> {
       title: Text(AppLocalizations.of(context)!.addItem),
       content: ingredientsAsync.when(
         data: (ingredients) {
-          if (ingredients.isEmpty)
+          if (ingredients.isEmpty) {
             return Text(AppLocalizations.of(context)!.noIngredientsAvailable);
+          }
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [

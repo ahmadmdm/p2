@@ -24,15 +24,18 @@ import '../../../domain/entities/order_status.dart';
 import '../../../domain/entities/order_type.dart' as domain;
 import '../../../data/repositories/customers_repository_impl.dart';
 import '../../../data/repositories/orders_repository_impl.dart';
+import '../../../data/repositories/tables_repository_impl.dart';
 import '../../../core/services/sync_service.dart';
 import '../../../core/services/printing_service.dart';
 
 import '../../../domain/entities/loyalty_transaction.dart';
+import '../../../domain/entities/restaurant_table.dart';
 
 import '../orders/my_deliveries_screen.dart';
 import '../orders/orders_history_screen.dart';
 import '../orders/refunds_approval_screen.dart';
 import '../customers/customers_screen.dart';
+import '../../../theme/pos_theme.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -47,6 +50,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     super.initState();
     // Start Sync Service
     ref.read(syncServiceProvider);
+    Future.microtask(() => ref.read(syncServiceProvider).syncAll());
   }
 
   @override
@@ -56,6 +60,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
     final cartState = ref.watch(cartControllerProvider);
     final user = ref.watch(authControllerProvider).value;
+    final settings =
+        ref.watch(settingsControllerProvider).valueOrNull ?? const {};
 
     return Scaffold(
       appBar: AppBar(
@@ -256,96 +262,127 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 // Products Grid
                 Expanded(
                   child: productsAsync.when(
-                    data: (products) => GridView.builder(
-                      padding: const EdgeInsets.all(8.0),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3, // Adjust for iPad
-                        childAspectRatio: 0.8,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                      ),
-                      itemCount: products.length,
-                      itemBuilder: (context, index) {
-                        final product = products[index];
-                        final isArabic =
-                            Localizations.localeOf(context).languageCode ==
-                                'ar';
-                        return Card(
-                          elevation: 2,
-                          child: InkWell(
-                            onTap: () {
-                              if (product.modifierGroups.isNotEmpty) {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => ProductDetailsDialog(
-                                    product: product,
-                                    onAddToCart: (quantity, notes, modifiers) {
-                                      ref
-                                          .read(cartControllerProvider.notifier)
-                                          .addToCart(product,
-                                              quantity: quantity,
-                                              notes: notes,
-                                              modifiers: modifiers);
-                                    },
-                                  ),
-                                );
-                              } else {
-                                ref
-                                    .read(cartControllerProvider.notifier)
-                                    .addToCart(product);
-                              }
-                            },
-                            onLongPress: () {
-                              // Open Recipe/Inventory Management for this product
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => RecipesScreen(
-                                    productId: product.id,
-                                    productName: product.nameEn,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    color: Colors.grey.shade200,
-                                    child: const Icon(Icons.fastfood,
-                                        size: 40, color: Colors.grey),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        isArabic
-                                            ? product.nameAr
-                                            : product.nameEn,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        '\$${product.price.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                            color: Colors.green),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                    data: (products) {
+                      if (products.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Menu is empty. Please sync data.'),
+                              const SizedBox(height: 10),
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.sync),
+                                label:
+                                    Text(AppLocalizations.of(context)!.syncNow),
+                                onPressed: () async {
+                                  await ref.read(syncServiceProvider).syncAll();
+                                },
+                              ),
+                            ],
                           ),
                         );
-                      },
-                    ),
+                      }
+
+                      return GridView.builder(
+                        padding: const EdgeInsets.all(8.0),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3, // Adjust for iPad
+                          childAspectRatio: 0.8,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                        itemCount: products.length,
+                        itemBuilder: (context, index) {
+                          final product = products[index];
+                          final isArabic =
+                              Localizations.localeOf(context).languageCode ==
+                                  'ar';
+                          return Card(
+                            child: InkWell(
+                              onTap: () {
+                                if (product.modifierGroups.isNotEmpty) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => ProductDetailsDialog(
+                                      product: product,
+                                      onAddToCart:
+                                          (quantity, notes, modifiers) {
+                                        ref
+                                            .read(
+                                                cartControllerProvider.notifier)
+                                            .addToCart(product,
+                                                quantity: quantity,
+                                                notes: notes,
+                                                modifiers: modifiers);
+                                      },
+                                    ),
+                                  );
+                                } else {
+                                  ref
+                                      .read(cartControllerProvider.notifier)
+                                      .addToCart(product);
+                                }
+                              },
+                              onLongPress: () {
+                                // Open Recipe/Inventory Management for this product
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => RecipesScreen(
+                                      productId: product.id,
+                                      productName: product.nameEn,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      color: POSTheme.surfaceTint.withValues(
+                                        alpha: 0.55,
+                                      ),
+                                      child: const Icon(
+                                        Icons.fastfood,
+                                        size: 40,
+                                        color: POSTheme.secondary,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          isArabic
+                                              ? product.nameAr
+                                              : product.nameEn,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          _formatCurrency(
+                                              product.price, settings),
+                                          style: const TextStyle(
+                                            color: POSTheme.primary,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
                     error: (err, stack) => Center(child: Text('Error: $err')),
@@ -364,7 +401,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  color: Colors.blue.shade50,
+                  color: POSTheme.surfaceTint.withValues(alpha: 0.7),
                   child: Row(
                     children: [
                       Expanded(
@@ -392,7 +429,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     Text(
                                         '${cartState.selectedCustomer!.loyaltyPoints} pts (${cartState.selectedCustomer!.tier})',
                                         style: const TextStyle(
-                                            fontSize: 12, color: Colors.green)),
+                                          fontSize: 12,
+                                          color: POSTheme.secondary,
+                                        )),
                                 ],
                               ),
                             ),
@@ -418,7 +457,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Colors.blueGrey.shade50,
+                  color: POSTheme.surfaceTint.withValues(alpha: 0.55),
                   width: double.infinity,
                   child: Text(
                     AppLocalizations.of(context)!.currentOrder,
@@ -441,7 +480,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                                '${item.quantity} x \$${item.product.price.toStringAsFixed(2)}'),
+                                '${item.quantity} x ${_formatCurrency(item.product.price, settings)}'),
                             if (item.modifiers.isNotEmpty)
                               Text(
                                 item.modifiers
@@ -458,7 +497,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                           ],
                         ),
-                        trailing: Text('\$${item.total.toStringAsFixed(2)}'),
+                        trailing: Text(_formatCurrency(item.total, settings)),
                         onTap: () {
                           _showEditItemDialog(context, ref, item);
                         },
@@ -487,7 +526,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             children: [
                               Text('${AppLocalizations.of(context)!.subtotal}:',
                                   style: const TextStyle(fontSize: 16)),
-                              Text('\$${cartState.subtotal.toStringAsFixed(2)}',
+                              Text(
+                                  _formatCurrency(cartState.subtotal, settings),
                                   style: const TextStyle(fontSize: 16)),
                             ],
                           ),
@@ -516,7 +556,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ],
                               ),
                               Text(
-                                  '-\$${cartState.globalDiscountAmount.toStringAsFixed(2)}',
+                                  '-${_formatCurrency(cartState.globalDiscountAmount, settings)}',
                                   style: const TextStyle(
                                       fontSize: 16, color: Colors.red)),
                             ],
@@ -544,7 +584,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ],
                               ),
                               Text(
-                                  '\$${cartState.globalTaxAmount.toStringAsFixed(2)}',
+                                  _formatCurrency(
+                                      cartState.globalTaxAmount, settings),
                                   style: const TextStyle(fontSize: 16)),
                             ],
                           ),
@@ -557,7 +598,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold)),
                               Text(
-                                '\$${cartState.totalAmount.toStringAsFixed(2)}',
+                                _formatCurrency(
+                                    cartState.totalAmount, settings),
                                 style: const TextStyle(
                                     fontSize: 24, fontWeight: FontWeight.bold),
                               ),
@@ -571,7 +613,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         height: 50,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
+                            backgroundColor: POSTheme.primary,
                             foregroundColor: Colors.white,
                           ),
                           onPressed: cartState.items.isEmpty
@@ -599,47 +641,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final cartItems = cartState.items;
     if (cartItems.isEmpty) return;
 
-    // 1. Ask for Table
-    final tableController = TextEditingController();
-    final tableNumber = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.enterTableNumber),
-        content: TextField(
-          controller: tableController,
-          decoration: InputDecoration(
-              hintText: AppLocalizations.of(context)!.tableNumberPlaceholder),
-          keyboardType: TextInputType.text,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, tableController.text),
-            child: Text(AppLocalizations.of(context)!.next),
-          ),
-        ],
-      ),
-    );
-
-    if (tableNumber == null) return;
-
-    final normalizedTableInput = tableNumber.trim();
-    if (normalizedTableInput.isEmpty) return;
-
-    final normalizedLower = normalizedTableInput.toLowerCase();
-    final isTakeaway = normalizedLower == 'takeaway' ||
-        normalizedLower == 'take away' ||
-        normalizedLower == 'to go' ||
-        normalizedLower == 'pickup' ||
-        normalizedLower == 'سفري';
-
-    final orderType =
-        isTakeaway ? domain.OrderType.TAKEAWAY : domain.OrderType.DINE_IN;
-    final tableIdentifier = isTakeaway ? null : normalizedTableInput;
+    final checkoutSelection = await _showCheckoutOptionsDialog(context, ref);
+    if (checkoutSelection == null) return;
 
     // 2. Ask for Payment Method
     if (!context.mounted) return;
@@ -683,7 +686,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Text(
                       AppLocalizations.of(context)!
                           .usePoints(pointsNeeded, customer.loyaltyPoints),
-                      style: const TextStyle(fontSize: 14, color: Colors.green),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: POSTheme.secondary,
+                      ),
                     ),
                   ],
                 ),
@@ -709,8 +715,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       const uuid = Uuid();
       final order = domain.Order(
         id: uuid.v4(),
-        tableNumber: tableIdentifier,
-        type: orderType,
+        tableNumber: checkoutSelection.tableNumber,
+        type: checkoutSelection.type,
         status: OrderStatus.PENDING,
         paymentMethod: paymentMethod,
         customerId: cartState.selectedCustomer?.id,
@@ -722,6 +728,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         totalAmount: cartState.totalAmount,
         taxAmount: cartState.globalTaxAmount,
         discountAmount: cartState.globalDiscountAmount,
+        deliveryAddress: checkoutSelection.deliveryAddress,
+        deliveryFee: checkoutSelection.deliveryFee,
+        deliveryProvider: checkoutSelection.deliveryProvider,
         createdAt: DateTime.now(),
         items: cartItems
             .map((item) => domain.OrderItem(
@@ -744,6 +753,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       final createdOrder = await ref
           .read(ordersRepositoryProvider)
           .createOrder(order, token: token);
+      if (createdOrder.type == domain.OrderType.DELIVERY &&
+          token != null &&
+          checkoutSelection.deliveryProvider != null &&
+          checkoutSelection.deliveryProvider != 'internal') {
+        await ref.read(ordersRepositoryProvider).requestDelivery(
+              token,
+              createdOrder.id,
+              checkoutSelection.deliveryProvider!,
+            );
+      }
 
       final settings = await ref.read(settingsControllerProvider.future);
       final autoPrintReceipt = settings['autoPrintReceipt'] as bool? ?? true;
@@ -796,6 +815,242 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       }
     }
+  }
+
+  String _formatCurrency(double amount, Map<String, dynamic> settings) {
+    final symbol = (settings['currencySymbol'] ?? '\$').toString();
+    final decimals = (settings['currencyDecimals'] as int?) ?? 2;
+    return '$symbol${amount.toStringAsFixed(decimals)}';
+  }
+
+  String _takeawayLabel(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    return isArabic ? 'سفري' : 'Takeaway';
+  }
+
+  String _internalDriverLabel(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    return isArabic ? 'مندوب داخلي' : 'Internal Driver';
+  }
+
+  String _selectOrderTypeLabel(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    return isArabic ? 'اختر نوع الطلب' : 'Select Order Type';
+  }
+
+  String _selectTableLabel(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    return isArabic ? 'اختر الطاولة' : 'Select Table';
+  }
+
+  String _tableIdOf(dynamic table) {
+    if (table is RestaurantTable) return table.id;
+    if (table is Map<String, dynamic>) return table['id']?.toString() ?? '';
+    if (table is Map) return table['id']?.toString() ?? '';
+    return '';
+  }
+
+  String _tableNumberOf(dynamic table) {
+    if (table is RestaurantTable) return table.tableNumber;
+    if (table is Map<String, dynamic>) {
+      return table['tableNumber']?.toString() ?? '';
+    }
+    if (table is Map) return table['tableNumber']?.toString() ?? '';
+    return '';
+  }
+
+  Future<_CheckoutSelection?> _showCheckoutOptionsDialog(
+      BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final settings =
+        ref.read(settingsControllerProvider).valueOrNull ?? const {};
+    final feeController = TextEditingController(text: '0');
+    final addressController = TextEditingController();
+
+    final tables = await ref.read(tablesRepositoryProvider).getTables();
+    final sortedTables = [...tables]
+      ..sort((a, b) => _tableNumberOf(a).compareTo(_tableNumberOf(b)));
+    if (!context.mounted) return null;
+
+    domain.OrderType selectedType = domain.OrderType.DINE_IN;
+    dynamic selectedTable = sortedTables.isNotEmpty ? sortedTables.first : null;
+    String selectedProvider =
+        (settings['defaultDeliveryProvider'] ?? 'internal').toString();
+
+    final selection = await showDialog<_CheckoutSelection>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: Text(l10n.charge),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _selectOrderTypeLabel(context),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: Text(l10n.table),
+                          selected: selectedType == domain.OrderType.DINE_IN,
+                          onSelected: (_) {
+                            setState(
+                                () => selectedType = domain.OrderType.DINE_IN);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: Text(_takeawayLabel(context)),
+                          selected: selectedType == domain.OrderType.TAKEAWAY,
+                          onSelected: (_) {
+                            setState(
+                                () => selectedType = domain.OrderType.TAKEAWAY);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: Text(l10n.delivery),
+                          selected: selectedType == domain.OrderType.DELIVERY,
+                          onSelected: (_) {
+                            setState(
+                                () => selectedType = domain.OrderType.DELIVERY);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (selectedType == domain.OrderType.DINE_IN) ...[
+                      Text(
+                        _selectTableLabel(context),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 10),
+                      if (sortedTables.isEmpty)
+                        const Text('No tables available.')
+                      else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: sortedTables
+                              .map((table) => ChoiceChip(
+                                    label: Text(_tableNumberOf(table)),
+                                    selected: _tableIdOf(selectedTable) ==
+                                        _tableIdOf(table),
+                                    onSelected: (_) {
+                                      setState(() => selectedTable = table);
+                                    },
+                                  ))
+                              .toList(),
+                        ),
+                    ],
+                    if (selectedType == domain.OrderType.DELIVERY) ...[
+                      Text(
+                        l10n.deliveryManagement,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedProvider,
+                        decoration: const InputDecoration(
+                          labelText: 'Delivery Provider',
+                        ),
+                        items: [
+                          DropdownMenuItem(
+                            value: 'internal',
+                            child: Text(_internalDriverLabel(context)),
+                          ),
+                          const DropdownMenuItem(
+                            value: 'uber-eats',
+                            child: Text('Uber Eats'),
+                          ),
+                          const DropdownMenuItem(
+                            value: 'mock-aggregator',
+                            child: Text('Mock Aggregator'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() => selectedProvider = value);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: addressController,
+                        decoration: const InputDecoration(
+                          labelText: 'Delivery Address',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: feeController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Delivery Fee',
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.cancel),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (selectedType == domain.OrderType.DINE_IN &&
+                      (selectedTable == null ||
+                          _tableNumberOf(selectedTable).isEmpty)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(_selectTableLabel(context))),
+                    );
+                    return;
+                  }
+                  final deliveryFee =
+                      double.tryParse(feeController.text) ?? 0.0;
+                  final deliveryAddress = addressController.text.trim();
+
+                  Navigator.pop(
+                    context,
+                    _CheckoutSelection(
+                      type: selectedType,
+                      tableNumber: selectedType == domain.OrderType.DINE_IN
+                          ? _tableNumberOf(selectedTable)
+                          : null,
+                      deliveryAddress: selectedType == domain.OrderType.DELIVERY
+                          ? (deliveryAddress.isEmpty ? null : deliveryAddress)
+                          : null,
+                      deliveryFee: selectedType == domain.OrderType.DELIVERY
+                          ? deliveryFee
+                          : 0.0,
+                      deliveryProvider:
+                          selectedType == domain.OrderType.DELIVERY
+                              ? selectedProvider
+                              : null,
+                    ),
+                  );
+                },
+                child: Text(l10n.next),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    feeController.dispose();
+    addressController.dispose();
+    return selection;
   }
 
   Future<void> _showEditItemDialog(
@@ -1167,4 +1422,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
     );
   }
+}
+
+class _CheckoutSelection {
+  final domain.OrderType type;
+  final String? tableNumber;
+  final String? deliveryAddress;
+  final String? deliveryProvider;
+  final double deliveryFee;
+
+  const _CheckoutSelection({
+    required this.type,
+    this.tableNumber,
+    this.deliveryAddress,
+    this.deliveryProvider,
+    this.deliveryFee = 0,
+  });
 }

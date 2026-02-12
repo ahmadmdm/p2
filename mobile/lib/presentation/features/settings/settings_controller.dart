@@ -1,12 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/config/api_config.dart';
 
 part 'settings_controller.g.dart';
-
-const _defaultApiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://localhost:3000',
-);
 
 @riverpod
 class SettingsController extends _$SettingsController {
@@ -22,7 +18,12 @@ class SettingsController extends _$SettingsController {
       'receiptCopies': prefs.getInt('receiptCopies') ?? 1,
       'autoPrintReceipt': prefs.getBool('autoPrintReceipt') ?? true,
       'autoPrintKitchen': prefs.getBool('autoPrintKitchen') ?? true,
-      'baseUrl': prefs.getString('baseUrl') ?? _defaultApiBaseUrl,
+      'baseUrl': prefs.getString('baseUrl') ?? defaultApiBaseUrl(),
+      'currencyCode': prefs.getString('currencyCode') ?? 'USD',
+      'currencySymbol': prefs.getString('currencySymbol') ?? '\$',
+      'currencyDecimals': prefs.getInt('currencyDecimals') ?? 2,
+      'defaultDeliveryProvider':
+          prefs.getString('defaultDeliveryProvider') ?? 'internal',
     };
   }
 
@@ -36,6 +37,10 @@ class SettingsController extends _$SettingsController {
     bool? autoPrintReceipt,
     bool? autoPrintKitchen,
     String? baseUrl,
+    String? currencyCode,
+    String? currencySymbol,
+    int? currencyDecimals,
+    String? defaultDeliveryProvider,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final current = state.value ?? {};
@@ -58,7 +63,21 @@ class SettingsController extends _$SettingsController {
     if (autoPrintKitchen != null) {
       await prefs.setBool('autoPrintKitchen', autoPrintKitchen);
     }
-    if (baseUrl != null) await prefs.setString('baseUrl', baseUrl);
+    if (baseUrl != null) {
+      await prefs.setString('baseUrl', baseUrl);
+    }
+    if (currencyCode != null) {
+      await prefs.setString('currencyCode', currencyCode);
+    }
+    if (currencySymbol != null) {
+      await prefs.setString('currencySymbol', currencySymbol);
+    }
+    if (currencyDecimals != null) {
+      await prefs.setInt('currencyDecimals', currencyDecimals);
+    }
+    if (defaultDeliveryProvider != null) {
+      await prefs.setString('defaultDeliveryProvider', defaultDeliveryProvider);
+    }
 
     state = AsyncValue.data({
       'printerIp': printerIp ?? current['printerIp'],
@@ -70,6 +89,11 @@ class SettingsController extends _$SettingsController {
       'autoPrintReceipt': autoPrintReceipt ?? current['autoPrintReceipt'],
       'autoPrintKitchen': autoPrintKitchen ?? current['autoPrintKitchen'],
       'baseUrl': baseUrl ?? current['baseUrl'],
+      'currencyCode': currencyCode ?? current['currencyCode'],
+      'currencySymbol': currencySymbol ?? current['currencySymbol'],
+      'currencyDecimals': currencyDecimals ?? current['currencyDecimals'],
+      'defaultDeliveryProvider':
+          defaultDeliveryProvider ?? current['defaultDeliveryProvider'],
     });
   }
 

@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Minus, Plus, Trash2, User, Gift } from 'lucide-react';
 import api from '../api';
+import type { Order } from '../models';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -19,21 +20,36 @@ export default function Cart() {
     }
     setPlacingOrder(true);
     try {
-      const orderData = {
-        token: tableId,
-        items: items.map((item) => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-          notes: item.notes || '',
-          modifiers: (item.modifiers || []).map((modifier) => ({
-            id: modifier.id,
-          })),
+      const itemsPayload = items.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        notes: item.notes || '',
+        modifiers: (item.modifiers || []).map((modifier) => ({
+          id: modifier.id,
         })),
-      };
+      }));
 
-      const res = await api.post('/public-api/orders', orderData);
+      const activeOrderRes = await api.get<Order | null>('/public-api/active-order', {
+        params: { t: tableId },
+      });
+      const activeOrderId = activeOrderRes.data?.id;
+
+      const res = activeOrderId
+        ? await api.post(`/public-api/orders/${activeOrderId}/add-items`, {
+            items: itemsPayload,
+          }, {
+            params: { t: tableId },
+          })
+        : await api.post('/public-api/orders', {
+            token: tableId,
+            items: itemsPayload,
+          });
+
       clearCart();
-      navigate(`/t/${tableId}/order/${res.data.id}`);
+      if (res.data?.id) {
+        localStorage.setItem(`activeOrder:${tableId}`, res.data.id as string);
+        navigate(`/t/${tableId}/order/${res.data.id}`);
+      }
     } catch (err) {
       console.error('Order failed', err);
       alert('Failed to place order. Please try again.');
@@ -88,7 +104,7 @@ export default function Cart() {
 
       <div className="p-4 space-y-4">
         {items.map((item) => (
-          <div key={item.product.id} className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
+          <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
             <div className="flex-1">
               <h3 className="font-semibold">{item.product.name.en}</h3>
               <p className="text-blue-600 font-medium">
